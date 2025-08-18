@@ -1,11 +1,13 @@
 ﻿using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
 {
+    [Authorize] // <-- ESTA LINHA PROTEGE TODOS OS ENDPOINTS DESTE CONTROLLER
     [ApiController]
     [Route("api/[controller]")]
     public class GranjasController : ControllerBase

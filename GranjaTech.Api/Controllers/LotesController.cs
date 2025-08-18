@@ -1,4 +1,5 @@
-﻿using GranjaTech.Application.Services.Interfaces;
+﻿using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
@@ -35,11 +36,12 @@ namespace GranjaTech.Api.Controllers
             return Ok(lote);
         }
 
+        // Método ATUALIZADO para usar o DTO
         [HttpPost]
-        public async Task<ActionResult<Lote>> PostLote(Lote lote)
+        public async Task<IActionResult> PostLote(CreateLoteDto loteDto)
         {
-            await _loteService.AddAsync(lote);
-            return CreatedAtAction(nameof(GetLote), new { id = lote.Id }, lote);
+            await _loteService.AddAsync(loteDto);
+            return Ok(new { message = "Lote criado com sucesso." });
         }
 
         [HttpPut("{id}")]

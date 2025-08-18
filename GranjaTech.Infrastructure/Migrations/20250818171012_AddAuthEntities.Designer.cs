@@ -3,6 +3,7 @@ using System;
 using GranjaTech.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GranjaTech.Infrastructure.Migrations
 {
     [DbContext(typeof(GranjaTechDbContext))]
-    partial class GranjaTechDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250818171012_AddAuthEntities")]
+    partial class AddAuthEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -107,38 +110,6 @@ namespace GranjaTech.Infrastructure.Migrations
                         });
                 });
 
-            modelBuilder.Entity("GranjaTech.Domain.TransacaoFinanceira", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Data")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Descricao")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("LoteId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<decimal>("Valor")
-                        .HasColumnType("numeric");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LoteId");
-
-                    b.ToTable("TransacoesFinanceiras");
-                });
-
             modelBuilder.Entity("GranjaTech.Domain.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -178,15 +149,6 @@ namespace GranjaTech.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Granja");
-                });
-
-            modelBuilder.Entity("GranjaTech.Domain.TransacaoFinanceira", b =>
-                {
-                    b.HasOne("GranjaTech.Domain.Lote", "Lote")
-                        .WithMany()
-                        .HasForeignKey("LoteId");
-
-                    b.Navigation("Lote");
                 });
 
             modelBuilder.Entity("GranjaTech.Domain.Usuario", b =>

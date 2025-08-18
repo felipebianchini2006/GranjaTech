@@ -1,4 +1,5 @@
-﻿using GranjaTech.Application.Services.Interfaces;
+﻿using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
 using GranjaTech.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,6 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
         public async Task<IEnumerable<Lote>> GetAllAsync()
         {
-            // .Include(l => l.Granja) diz ao EF para também carregar os dados da Granja relacionada.
             return await _context.Lotes
                                  .Include(l => l.Granja)
                                  .ToListAsync();
@@ -26,15 +26,22 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
         public async Task<Lote?> GetByIdAsync(int id)
         {
-            // Também usamos o .Include para buscar um lote específico com os dados da sua granja.
             return await _context.Lotes
                                  .Include(l => l.Granja)
                                  .FirstOrDefaultAsync(l => l.Id == id);
         }
 
-        public async Task AddAsync(Lote lote)
+        // Método ATUALIZADO para usar o DTO
+        public async Task AddAsync(CreateLoteDto loteDto)
         {
-            // Para criar um lote, o objeto 'lote' já deve vir com um 'GranjaId' válido.
+            var lote = new Lote
+            {
+                Identificador = loteDto.Identificador,
+                QuantidadeAvesInicial = loteDto.QuantidadeAvesInicial,
+                DataEntrada = loteDto.DataEntrada,
+                GranjaId = loteDto.GranjaId
+            };
+
             await _context.Lotes.AddAsync(lote);
             await _context.SaveChangesAsync();
         }
@@ -48,7 +55,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                 entityToUpdate.DataEntrada = lote.DataEntrada;
                 entityToUpdate.DataSaida = lote.DataSaida;
                 entityToUpdate.QuantidadeAvesInicial = lote.QuantidadeAvesInicial;
-                entityToUpdate.GranjaId = lote.GranjaId; // Permite mover um lote para outra granja
+                entityToUpdate.GranjaId = lote.GranjaId;
 
                 await _context.SaveChangesAsync();
             }

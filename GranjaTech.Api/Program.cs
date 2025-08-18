@@ -1,60 +1,117 @@
 using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Infrastructure;
 using GranjaTech.Infrastructure.Services.Implementations;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- Início da Seção de Configuração de Serviços ---
 
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+                      policy =>
+                      {
+                          policy.WithOrigins("http://localhost:3000")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod();
+                      });
+});
+
 builder.Services.AddControllers();
 
-// 1. Pega a string de conexão do appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-// 2. Adiciona o DbContext ao contêiner de injeção de dependência.
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 3. Registra os serviços da aplicação.
 builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IFinancasService, FinancasService>();
 
-// Serviços para a documentação da API (Swagger).
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// --- Fim da Seção de Configuração de Serviços ---
+// --- INÍCIO DA CORREÇÃO NO SWAGGER ---
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "GranjaTech API", Version = "v1" });
 
+    // A configuração foi alterada para usar o tipo 'Http' com o esquema 'Bearer'
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Insira o token JWT desta forma: Bearer {seu token}",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http, // Alterado de ApiKey para Http
+        Scheme = "bearer", // Recomenda-se minúsculo por convenção
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+// --- FIM DA CORREÇÃO NO SWAGGER ---
 
 var app = builder.Build();
 
 // --- Início da Seção de Configuração do Pipeline HTTP ---
 
-// Em ambiente de desenvolvimento, habilita a interface do Swagger.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        // Injeta nosso arquivo CSS customizado para o tema escuro
         c.InjectStylesheet("/css/swagger-dark.css");
     });
 }
 
-// Redireciona requisições HTTP para HTTPS.
 app.UseHttpsRedirection();
-
-// Habilita o serviço de arquivos estáticos (da pasta wwwroot)
 app.UseStaticFiles();
+app.UseCors(MyAllowSpecificOrigins);
 
-// Habilita a autorização (usaremos isso mais tarde com login).
+// A ordem aqui é crucial: Autenticação primeiro, depois Autorização.
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapeia as rotas definidas nos seus controllers.
 app.MapControllers();
 
 // --- Fim da Seção de Configuração do Pipeline HTTP ---
 
-// Inicia a aplicação.
 app.Run();
