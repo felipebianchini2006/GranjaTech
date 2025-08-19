@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace GranjaTech.Domain
+﻿namespace GranjaTech.Domain
 {
     public class Granja
     {
-        // Chave primária da tabela. O EF Core entende que 'Id' é a chave por convenção.
         public int Id { get; set; }
-
-        // Nome da granja.
+        public string Codigo { get; set; } = string.Empty; // ADICIONE ESTA LINHA
         public string Nome { get; set; } = string.Empty;
-
-        // Localização/endereço da granja.
         public string? Localizacao { get; set; }
+
+        public int UsuarioId { get; set; }
+        public Usuario Usuario { get; set; } = null!;
     }
 }

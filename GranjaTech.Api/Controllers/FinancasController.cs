@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
 {
-    // Protege o controller inteiro para os perfis especificados
-    [Authorize(Roles = "Administrador,Financeiro")]
+    [Authorize] // Protege o controller inteiro
     [ApiController]
     [Route("api/[controller]")]
     public class FinancasController : ControllerBase
@@ -19,6 +18,7 @@ namespace GranjaTech.Api.Controllers
             _financasService = financasService;
         }
 
+        [Authorize(Roles = "Administrador,Financeiro")]
         [HttpGet]
         public async Task<IActionResult> GetTransacoes()
         {
@@ -26,11 +26,25 @@ namespace GranjaTech.Api.Controllers
             return Ok(transacoes);
         }
 
+        [Authorize(Roles = "Administrador,Financeiro")]
         [HttpPost]
         public async Task<IActionResult> PostTransacao(TransacaoFinanceira transacao)
         {
             await _financasService.AddAsync(transacao);
             return Ok(new { message = "Transação registrada com sucesso." });
+        }
+
+        // NOVO ENDPOINT DE EXCLUSÃO
+        [Authorize(Roles = "Administrador")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTransacao(int id)
+        {
+            var sucesso = await _financasService.DeleteAsync(id);
+            if (!sucesso)
+            {
+                return NotFound("Transação não encontrada.");
+            }
+            return NoContent();
         }
     }
 }

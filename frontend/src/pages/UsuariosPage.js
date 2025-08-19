@@ -3,15 +3,16 @@ import apiService from '../services/apiService';
 import { 
     Button, TextField, Box, Typography, Container, Paper, Select, MenuItem, 
     FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, 
-    TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogActions
+    TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-const initialFormState = { id: 0, nome: '', email: '', senha: '', perfilId: '' };
+const initialFormState = { id: 0, nome: '', email: '', senha: '', perfilId: '', produtorIds: [] };
 
 function UsuariosPage() {
     const [users, setUsers] = useState([]);
+    const [produtores, setProdutores] = useState([]);
     const [formData, setFormData] = useState(initialFormState);
     const [isEditMode, setIsEditMode] = useState(false);
     const [open, setOpen] = useState(false);
@@ -22,6 +23,7 @@ function UsuariosPage() {
         try {
             const response = await apiService.getUsers();
             setUsers(response.data);
+            setProdutores(response.data.filter(user => user.perfilNome === 'Produtor'));
         } catch (err) {
             setError("Não foi possível carregar a lista de usuários.");
         }
@@ -31,12 +33,17 @@ function UsuariosPage() {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleOpen = (user = null) => {
+    const handleOpen = async (user = null) => {
         setMessage('');
         setError('');
         if (user) {
             setIsEditMode(true);
-            setFormData({ id: user.id, nome: user.nome, email: user.email, perfilId: users.find(u => u.perfilNome === user.perfilNome)?.id || '' });
+            try {
+                const response = await apiService.getUserById(user.id);
+                setFormData(response.data);
+            } catch (err) {
+                setError("Falha ao carregar dados do usuário para edição.");
+            }
         } else {
             setIsEditMode(false);
             setFormData(initialFormState);
@@ -55,17 +62,18 @@ function UsuariosPage() {
         event.preventDefault();
         setMessage('');
         setError('');
-
         try {
             if (isEditMode) {
-                // Lógica de Edição
-                const { id, nome, email, perfilId } = formData;
-                await apiService.updateUser(id, { nome, email, perfilId });
+                const { id, nome, email, perfilId, produtorIds } = formData;
+                await apiService.updateUser(id, { nome, email, perfilId, produtorIds });
                 setMessage('Usuário atualizado com sucesso!');
             } else {
-                // Lógica de Criação
                 if (!formData.senha) {
                     setError('O campo senha é obrigatório para novos usuários.');
+                    return;
+                }
+                if (formData.perfilId === 3 && formData.produtorIds.length === 0) {
+                    setError('Para o perfil Financeiro, é obrigatório selecionar ao menos um Produtor.');
                     return;
                 }
                 await apiService.registrar(formData);
@@ -84,7 +92,12 @@ function UsuariosPage() {
                 await apiService.deleteUser(id);
                 fetchUsers();
             } catch (err) {
-                setError('Erro ao excluir usuário.');
+                if (err.response && err.response.data && err.response.data.message) {
+                    alert(err.response.data.message);
+                } else {
+                    alert('Ocorreu um erro ao tentar excluir o usuário.');
+                    console.error("Erro ao excluir usuário:", err);
+                }
             }
         }
     };
@@ -101,6 +114,7 @@ function UsuariosPage() {
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell>Código</TableCell>
                                 <TableCell>Nome</TableCell>
                                 <TableCell>Email</TableCell>
                                 <TableCell>Perfil</TableCell>
@@ -110,6 +124,7 @@ function UsuariosPage() {
                         <TableBody>
                             {users.map((user) => (
                                 <TableRow key={user.id}>
+                                    <TableCell>{user.codigo}</TableCell>
                                     <TableCell>{user.nome}</TableCell>
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>{user.perfilNome}</TableCell>
@@ -123,33 +138,61 @@ function UsuariosPage() {
                     </Table>
                 </TableContainer>
 
-                <Dialog open={open} onClose={handleClose}>
-                    <DialogTitle>{isEditMode ? 'Editar Usuário' : 'Adicionar Novo Usuário'}</DialogTitle>
-                    <DialogContent>
-                        <TextField autoFocus margin="dense" required fullWidth id="nome" label="Nome Completo" name="nome" value={formData.nome} onChange={handleInputChange}/>
-                        <TextField margin="dense" required fullWidth id="email" label="Endereço de Email" name="email" value={formData.email} onChange={handleInputChange}/>
-                        {!isEditMode && (
-                            <TextField margin="dense" required fullWidth name="senha" label="Senha" type="password" id="senha" value={formData.senha} onChange={handleInputChange}/>
-                        )}
-                        <FormControl fullWidth margin="normal" required>
-                            <InputLabel id="perfil-select-label">Perfil</InputLabel>
-                            <Select labelId="perfil-select-label" name="perfilId" value={formData.perfilId} label="Perfil" onChange={handleInputChange}>
-                                <MenuItem value={1}>Administrador</MenuItem>
-                                <MenuItem value={2}>Produtor</MenuItem>
-                                <MenuItem value={3}>Financeiro</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </DialogContent>
-                    <DialogActions>
-                        {error && <Typography color="error" sx={{ mr: 2 }}>{error}</Typography>}
-                        {message && <Typography color="primary" sx={{ mr: 2 }}>{message}</Typography>}
-                        <Button onClick={handleClose}>Cancelar</Button>
-                        <Button onClick={handleSubmit}>Salvar</Button>
-                    </DialogActions>
+                <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+                    <form onSubmit={handleSubmit}>
+                        <DialogTitle>{isEditMode ? 'Editar Usuário' : 'Adicionar Novo Usuário'}</DialogTitle>
+                        <DialogContent>
+                            <TextField autoFocus margin="dense" required fullWidth id="nome" label="Nome Completo" name="nome" value={formData.nome} onChange={handleInputChange} />
+                            <TextField margin="dense" required fullWidth id="email" label="Endereço de Email" name="email" value={formData.email} onChange={handleInputChange} />
+                            {!isEditMode && (
+                                <TextField margin="dense" required fullWidth name="senha" label="Senha" type="password" id="senha" value={formData.senha} onChange={handleInputChange} />
+                            )}
+                            <FormControl fullWidth margin="normal" required>
+                                <InputLabel>Perfil</InputLabel>
+                                <Select name="perfilId" value={formData.perfilId} onChange={handleInputChange}>
+                                    <MenuItem value={1}>Administrador</MenuItem>
+                                    <MenuItem value={2}>Produtor</MenuItem>
+                                    <MenuItem value={3}>Financeiro</MenuItem>
+                                </Select>
+                            </FormControl>
+                            {formData.perfilId === 3 && (
+                                <FormControl fullWidth margin="normal" required>
+                                    <InputLabel>Produtores Associados</InputLabel>
+                                    <Select
+                                        name="produtorIds"
+                                        multiple
+                                        value={formData.produtorIds}
+                                        onChange={handleInputChange}
+                                        renderValue={(selected) => (
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                                {selected.map((id) => {
+                                                    const produtor = produtores.find(p => p.id === id);
+                                                    return <Chip key={id} label={produtor ? produtor.nome : id} />;
+                                                })}
+                                            </Box>
+                                        )}
+                                    >
+                                        {produtores.map((produtor) => (
+                                            <MenuItem key={produtor.id} value={produtor.id}>
+                                                {produtor.nome}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
+                        </DialogContent>
+                        <DialogActions>
+                            <Box sx={{ flexGrow: 1, ml: 2, mr: 2 }}>
+                                {message && <Typography color="primary">{message}</Typography>}
+                                {error && <Typography color="error">{error}</Typography>}
+                            </Box>
+                            <Button onClick={handleClose}>Cancelar</Button>
+                            <Button type="submit">Salvar</Button>
+                        </DialogActions>
+                    </form>
                 </Dialog>
             </Paper>
         </Container>
     );
 }
-
 export default UsuariosPage;

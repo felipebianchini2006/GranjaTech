@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import apiService from '../services/apiService';
-
 import { 
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Typography, Box, Button, Dialog, DialogActions, DialogContent, 
@@ -9,12 +9,14 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
+const initialLoteState = { id: 0, identificador: '', quantidadeAvesInicial: '', dataEntrada: new Date().toISOString().split('T')[0], dataSaida: null, granjaId: '' };
+
 function LotesPage() {
+    const { user } = useContext(AuthContext);
     const [lotes, setLotes] = useState([]);
     const [granjas, setGranjas] = useState([]);
     const [open, setOpen] = useState(false);
-    
-    const initialLoteState = { id: 0, identificador: '', quantidadeAvesInicial: '', dataEntrada: new Date().toISOString().split('T')[0], dataSaida: null, granjaId: '' };
+    const [isEditMode, setIsEditMode] = useState(false);
     const [currentLote, setCurrentLote] = useState(initialLoteState);
 
     const fetchData = useCallback(async () => {
@@ -34,14 +36,19 @@ function LotesPage() {
         fetchData();
     }, [fetchData]);
 
-    const handleClickOpen = (lote = initialLoteState) => {
-        // CORREÇÃO 1: Garante que a data mostrada no formulário de edição é a data correta.
-        const formattedLote = {
-            ...lote,
-            dataEntrada: lote.dataEntrada ? lote.dataEntrada.split('T')[0] : '',
-            dataSaida: lote.dataSaida ? lote.dataSaida.split('T')[0] : null
-        };
-        setCurrentLote(formattedLote);
+    const handleClickOpen = (lote = null) => {
+        if (lote) {
+            setIsEditMode(true);
+            const formattedLote = {
+                ...lote,
+                dataEntrada: lote.dataEntrada ? lote.dataEntrada.split('T')[0] : '',
+                dataSaida: lote.dataSaida ? lote.dataSaida.split('T')[0] : null
+            };
+            setCurrentLote(formattedLote);
+        } else {
+            setIsEditMode(false);
+            setCurrentLote(initialLoteState);
+        }
         setOpen(true);
     };
     
@@ -52,26 +59,32 @@ function LotesPage() {
         setCurrentLote({ ...currentLote, [name]: value });
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (event) => {
+        event.preventDefault();
         if (currentLote.dataSaida && new Date(currentLote.dataSaida) < new Date(currentLote.dataEntrada)) {
             alert('Erro: A data de saída não pode ser anterior à data de entrada.');
             return;
         }
 
         try {
-            // CORREÇÃO 2: Trata a data como UTC desde o início para evitar o shift de fuso horário.
-            const loteParaEnviar = { 
-                ...currentLote, 
-                quantidadeAvesInicial: parseInt(currentLote.quantidadeAvesInicial, 10),
-                dataEntrada: new Date(`${currentLote.dataEntrada}T00:00:00.000Z`).toISOString(),
-                dataSaida: currentLote.dataSaida ? new Date(`${currentLote.dataSaida}T00:00:00.000Z`).toISOString() : null 
-            };
-
-            if (loteParaEnviar.id === 0) {
+            if (isEditMode) {
+                const loteParaEnviar = {
+                    identificador: currentLote.identificador,
+                    quantidadeAvesInicial: parseInt(currentLote.quantidadeAvesInicial, 10),
+                    dataEntrada: new Date(`${currentLote.dataEntrada}T00:00:00.000Z`).toISOString(),
+                    dataSaida: currentLote.dataSaida ? new Date(`${currentLote.dataSaida}T00:00:00.000Z`).toISOString() : null,
+                    granjaId: currentLote.granjaId
+                };
+                await apiService.updateLote(currentLote.id, loteParaEnviar);
+            } else {
+                const loteParaEnviar = { 
+                    ...currentLote, 
+                    quantidadeAvesInicial: parseInt(currentLote.quantidadeAvesInicial, 10),
+                    dataEntrada: new Date(`${currentLote.dataEntrada}T00:00:00.000Z`).toISOString(),
+                    dataSaida: currentLote.dataSaida ? new Date(`${currentLote.dataSaida}T00:00:00.000Z`).toISOString() : null 
+                };
                 const { id, ...loteFinal } = loteParaEnviar;
                 await apiService.createLote(loteFinal);
-            } else {
-                await apiService.updateLote(loteParaEnviar.id, loteParaEnviar);
             }
             handleClose();
             fetchData();
@@ -100,63 +113,69 @@ function LotesPage() {
                 <Typography variant="h4" component="h1">
                     Gerenciamento de Lotes
                 </Typography>
-                <Button variant="contained" onClick={() => handleClickOpen()}>
-                    Adicionar Novo Lote
-                </Button>
+                {user?.role !== 'Financeiro' && (
+                    <Button variant="contained" onClick={() => handleClickOpen()}>
+                        Adicionar Novo Lote
+                    </Button>
+                )}
             </Box>
 
             <Dialog open={open} onClose={handleClose}>
-                {/* O formulário continua o mesmo */}
-                <DialogTitle>{currentLote.id === 0 ? 'Cadastrar Novo Lote' : 'Editar Lote'}</DialogTitle>
-                <DialogContent>
-                    <TextField autoFocus margin="dense" name="identificador" label="Identificador do Lote" type="text" fullWidth variant="standard" value={currentLote.identificador} onChange={handleInputChange}/>
-                    <TextField margin="dense" name="quantidadeAvesInicial" label="Quantidade de Aves" type="number" fullWidth variant="standard" value={currentLote.quantidadeAvesInicial} onChange={handleInputChange}/>
-                    <TextField margin="dense" name="dataEntrada" label="Data de Entrada" type="date" fullWidth variant="standard" InputLabelProps={{ shrink: true }} value={currentLote.dataEntrada} onChange={handleInputChange}/>
-                    <TextField margin="dense" name="dataSaida" label="Data de Saída (opcional)" type="date" fullWidth variant="standard" InputLabelProps={{ shrink: true }} value={currentLote.dataSaida || ''} onChange={handleInputChange}/>
-                    <FormControl fullWidth margin="dense" variant="standard">
-                        <InputLabel id="granja-select-label">Granja</InputLabel>
-                        <Select labelId="granja-select-label" name="granjaId" value={currentLote.granjaId} onChange={handleInputChange}>
-                            {granjas.map((granja) => (
-                                <MenuItem key={granja.id} value={granja.id}>
-                                    {granja.nome}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleSubmit}>Salvar</Button>
-                </DialogActions>
+                <form onSubmit={handleSubmit}>
+                    <DialogTitle>{isEditMode ? 'Editar Lote' : 'Cadastrar Novo Lote'}</DialogTitle>
+                    <DialogContent>
+                        <TextField autoFocus margin="dense" name="identificador" label="Identificador do Lote" type="text" fullWidth variant="standard" value={currentLote.identificador} onChange={handleInputChange}/>
+                        <TextField margin="dense" name="quantidadeAvesInicial" label="Quantidade de Aves" type="number" fullWidth variant="standard" value={currentLote.quantidadeAvesInicial} onChange={handleInputChange}/>
+                        <TextField margin="dense" name="dataEntrada" label="Data de Entrada" type="date" fullWidth variant="standard" InputLabelProps={{ shrink: true }} value={currentLote.dataEntrada} onChange={handleInputChange}/>
+                        <TextField margin="dense" name="dataSaida" label="Data de Saída (opcional)" type="date" fullWidth variant="standard" InputLabelProps={{ shrink: true }} value={currentLote.dataSaida || ''} onChange={handleInputChange}/>
+                        <FormControl fullWidth margin="dense" variant="standard">
+                            <InputLabel id="granja-select-label">Granja</InputLabel>
+                            <Select labelId="granja-select-label" name="granjaId" value={currentLote.granjaId} onChange={handleInputChange}>
+                                {granjas.map((granja) => (
+                                    <MenuItem key={granja.id} value={granja.id}>
+                                        {granja.nome} ({granja.codigo})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleClose}>Cancelar</Button>
+                        <Button type="submit">Salvar</Button>
+                    </DialogActions>
+                </form>
             </Dialog>
 
             <TableContainer component={Paper}>
                 <Table>
-                    <TableHead style={{ backgroundColor: '#f5f5f5' }}>
+                    <TableHead>
                         <TableRow>
+                            <TableCell>Código</TableCell>
                             <TableCell>Identificador</TableCell>
                             <TableCell>Granja</TableCell>
                             <TableCell>Aves Iniciais</TableCell>
                             <TableCell>Data de Entrada</TableCell>
                             <TableCell>Data de Saída</TableCell>
-                            <TableCell align="right">Ações</TableCell>
+                            {user?.role !== 'Financeiro' && <TableCell align="right">Ações</TableCell>}
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {lotes.map((lote) => (
                             <TableRow key={lote.id}>
+                                <TableCell>{lote.codigo}</TableCell>
                                 <TableCell>{lote.identificador}</TableCell>
                                 <TableCell>{lote.granja?.nome || 'N/A'}</TableCell>
                                 <TableCell>{lote.quantidadeAvesInicial}</TableCell>
-                                {/* CORREÇÃO 3: Exibe a data da tabela considerando o fuso horário UTC */}
                                 <TableCell>{new Date(lote.dataEntrada).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                 <TableCell>
                                     {lote.dataSaida ? new Date(lote.dataSaida).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-'}
                                 </TableCell>
-                                <TableCell align="right">
-                                    <IconButton onClick={() => handleClickOpen(lote)}><EditIcon /></IconButton>
-                                    <IconButton onClick={() => handleDelete(lote.id)}><DeleteIcon /></IconButton>
-                                </TableCell>
+                                {user?.role !== 'Financeiro' && (
+                                    <TableCell align="right">
+                                        <IconButton onClick={() => handleClickOpen(lote)}><EditIcon /></IconButton>
+                                        <IconButton onClick={() => handleDelete(lote.id)}><DeleteIcon /></IconButton>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))}
                     </TableBody>

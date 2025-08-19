@@ -1,13 +1,15 @@
-﻿using GranjaTech.Application.Services.Interfaces;
+﻿using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
 {
-    [Authorize] // <-- ESTA LINHA PROTEGE TODOS OS ENDPOINTS DESTE CONTROLLER
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class GranjasController : ControllerBase
@@ -30,51 +32,54 @@ namespace GranjaTech.Api.Controllers
         public async Task<ActionResult<Granja>> GetGranja(int id)
         {
             var granja = await _granjaService.GetByIdAsync(id);
-
-            if (granja == null)
-            {
-                return NotFound();
-            }
-
+            if (granja == null) return NotFound();
             return Ok(granja);
         }
 
         [HttpPost]
-        public async Task<ActionResult<Granja>> PostGranja(Granja granja)
+        public async Task<IActionResult> PostGranja(CreateGranjaDto granjaDto)
         {
-            await _granjaService.AddAsync(granja);
-            return CreatedAtAction(nameof(GetGranja), new { id = granja.Id }, granja);
+            try
+            {
+                await _granjaService.AddAsync(granjaDto);
+                return Ok(new { message = "Granja criada com sucesso." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Forbid(ex.Message);
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutGranja(int id, Granja granja)
+        public async Task<IActionResult> PutGranja(int id, UpdateGranjaDto granjaDto)
         {
-            if (id != granja.Id)
+            try
             {
-                return BadRequest("O ID da rota não corresponde ao ID do objeto.");
+                var sucesso = await _granjaService.UpdateAsync(id, granjaDto);
+                if (!sucesso)
+                {
+                    return NotFound("Granja não encontrada ou permissão negada.");
+                }
+                return NoContent();
             }
-
-            var granjaExistente = await _granjaService.GetByIdAsync(id);
-            if (granjaExistente == null)
+            catch (InvalidOperationException ex)
             {
-                return NotFound("Granja não encontrada.");
+                return Forbid(ex.Message);
             }
-
-            await _granjaService.UpdateAsync(granja);
-            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteGranja(int id)
         {
-            var granjaExistente = await _granjaService.GetByIdAsync(id);
-            if (granjaExistente == null)
+            try
             {
-                return NotFound("Granja não encontrada.");
+                await _granjaService.DeleteAsync(id);
+                return NoContent();
             }
-
-            await _granjaService.DeleteAsync(id);
-            return NoContent();
+            catch (InvalidOperationException ex)
+            {
+                return Forbid(ex.Message);
+            }
         }
     }
 }

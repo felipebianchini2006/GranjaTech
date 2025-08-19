@@ -1,21 +1,24 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import apiService from '../services/apiService';
 
 import { 
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Typography, Box, Button, Dialog, DialogActions, DialogContent, 
-    DialogTitle, TextField, Select, MenuItem, FormControl, InputLabel
+    DialogTitle, TextField, Select, MenuItem, FormControl, InputLabel, IconButton
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 const initialFormState = {
     descricao: '',
     valor: '',
-    tipo: 'Saida', // Valor padrão
+    tipo: 'Saida',
     data: new Date().toISOString().split('T')[0],
-    loteId: '' // Começa vazio
+    loteId: ''
 };
 
 function FinanceiroPage() {
+    const { user } = useContext(AuthContext);
     const [transacoes, setTransacoes] = useState([]);
     const [lotes, setLotes] = useState([]);
     const [open, setOpen] = useState(false);
@@ -66,6 +69,18 @@ function FinanceiroPage() {
         }
     };
 
+    const handleDelete = async (id) => {
+        if (window.confirm('Tem certeza que deseja excluir esta transação?')) {
+            try {
+                await apiService.deleteTransacao(id);
+                fetchData();
+            } catch (error) {
+                console.error("Erro ao excluir transação:", error);
+                alert("Falha ao excluir transação.");
+            }
+        }
+    };
+
     return (
         <Box sx={{ margin: '20px', padding: '20px' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -77,7 +92,6 @@ function FinanceiroPage() {
                 </Button>
             </Box>
 
-            {/* Formulário em Dialog */}
             <Dialog open={open} onClose={handleClose}>
                 <DialogTitle>Registrar Nova Transação</DialogTitle>
                 <DialogContent>
@@ -107,16 +121,16 @@ function FinanceiroPage() {
                 </DialogActions>
             </Dialog>
 
-            {/* Tabela de Transações */}
             <TableContainer component={Paper}>
                 <Table>
-                    <TableHead style={{ backgroundColor: '#f5f5f5' }}>
+                    <TableHead>
                         <TableRow>
                             <TableCell>Descrição</TableCell>
                             <TableCell align="right">Valor</TableCell>
                             <TableCell>Tipo</TableCell>
                             <TableCell>Data</TableCell>
                             <TableCell>Lote Associado</TableCell>
+                            {user?.role === 'Administrador' && <TableCell align="right">Ações</TableCell>}
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -129,6 +143,13 @@ function FinanceiroPage() {
                                 <TableCell>{transacao.tipo}</TableCell>
                                 <TableCell>{new Date(transacao.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                 <TableCell>{transacao.lote?.identificador || '-'}</TableCell>
+                                {user?.role === 'Administrador' && (
+                                    <TableCell align="right">
+                                        <IconButton onClick={() => handleDelete(transacao.id)}>
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))}
                     </TableBody>

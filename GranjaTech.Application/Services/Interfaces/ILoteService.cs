@@ -9,8 +9,8 @@ namespace GranjaTech.Application.Services.Interfaces
     {
         Task<IEnumerable<Lote>> GetAllAsync();
         Task<Lote?> GetByIdAsync(int id);
-        Task AddAsync(CreateLoteDto loteDto); // Assinatura do método alterada
-        Task UpdateAsync(Lote lote);
+        Task AddAsync(CreateLoteDto loteDto);
+        Task<bool> UpdateAsync(int id, UpdateLoteDto loteDto); // Assinatura alterada
         Task DeleteAsync(int id);
     }
 }

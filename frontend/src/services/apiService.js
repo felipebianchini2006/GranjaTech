@@ -24,9 +24,15 @@ const apiService = {
     login: (credenciais) => apiClient.post('/auth/login', credenciais),
     registrar: (dadosDeRegistro) => apiClient.post('/auth/registrar', dadosDeRegistro),
     getUsers: () => apiClient.get('/auth/usuarios'),
+    getUserById: (id) => apiClient.get(`/auth/usuarios/${id}`),
     updateUser: (id, userData) => apiClient.put(`/auth/usuarios/${id}`, userData),
     deleteUser: (id) => apiClient.delete(`/auth/usuarios/${id}`),
     
+    // Funções de Perfil
+    getProfile: () => apiClient.get('/profile'),
+    updateProfile: (profileData) => apiClient.put('/profile', profileData),
+    changePassword: (passwordData) => apiClient.post('/profile/change-password', passwordData),
+
     // Funções de Granjas
     getGranjas: () => apiClient.get('/granjas'),
     createGranja: (novaGranja) => apiClient.post('/granjas', novaGranja),
@@ -39,9 +45,17 @@ const apiService = {
     updateLote: (id, loteAtualizado) => apiClient.put(`/lotes/${id}`, loteAtualizado),
     deleteLote: (id) => apiClient.delete(`/lotes/${id}`),
 
-    // ADICIONE AS FUNÇÕES FINANCEIRAS ABAIXO
+    // Funções Financeiras
     getTransacoes: () => apiClient.get('/financas'),
     createTransacao: (novaTransacao) => apiClient.post('/financas', novaTransacao),
+    deleteTransacao: (id) => apiClient.delete(`/financas/${id}`),
+
+    // Funções do Dashboard
+    getKpis: () => apiClient.get('/dashboard/kpis'),
+    getMonthlySummary: () => apiClient.get('/dashboard/resumo-mensal'),
+
+    // Função de Auditoria
+    getAuditLogs: () => apiClient.get('/auditoria'),
 };
 
 export default apiService;

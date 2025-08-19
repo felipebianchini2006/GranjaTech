@@ -1,12 +1,14 @@
 ﻿using GranjaTech.Application.DTOs;
 using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class LotesController : ControllerBase
@@ -36,41 +38,27 @@ namespace GranjaTech.Api.Controllers
             return Ok(lote);
         }
 
-        // Método ATUALIZADO para usar o DTO
         [HttpPost]
         public async Task<IActionResult> PostLote(CreateLoteDto loteDto)
         {
             await _loteService.AddAsync(loteDto);
-            return Ok(new { message = "Lote criado com sucesso." });
+            return Ok(new { message = "Lote criado com sucesso" });
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutLote(int id, Lote lote)
+        public async Task<IActionResult> PutLote(int id, UpdateLoteDto loteDto)
         {
-            if (id != lote.Id)
+            var sucesso = await _loteService.UpdateAsync(id, loteDto);
+            if (!sucesso)
             {
-                return BadRequest();
+                return NotFound("Lote não encontrado ou permissão negada.");
             }
-
-            var loteExistente = await _loteService.GetByIdAsync(id);
-            if (loteExistente == null)
-            {
-                return NotFound();
-            }
-
-            await _loteService.UpdateAsync(lote);
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLote(int id)
         {
-            var loteExistente = await _loteService.GetByIdAsync(id);
-            if (loteExistente == null)
-            {
-                return NotFound();
-            }
-
             await _loteService.DeleteAsync(id);
             return NoContent();
         }

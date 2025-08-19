@@ -8,6 +8,7 @@ namespace GranjaTech.Application.Services.Interfaces
     {
         Task<IEnumerable<TransacaoFinanceira>> GetAllAsync();
         Task AddAsync(TransacaoFinanceira transacao);
+        Task<bool> DeleteAsync(int id);
         // Por enquanto, não vamos implementar Update e Delete para manter simples,
         // mas a estrutura está pronta se precisarmos no futuro.
     }

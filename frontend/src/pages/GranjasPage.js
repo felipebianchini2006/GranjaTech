@@ -1,46 +1,55 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import apiService from '../services/apiService';
-
-// Importando mais componentes e ícones do Material-UI
-import { 
+import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    Typography, Box, Button, Dialog, DialogActions, DialogContent, 
-    DialogTitle, TextField, IconButton 
+    Typography, Box, Button, Dialog, DialogActions, DialogContent,
+    DialogTitle, TextField, IconButton, Select, MenuItem, FormControl, InputLabel
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 
-function GranjasPage() {
-    const [granjas, setGranjas] = useState([]);
-    const [open, setOpen] = useState(false);
-    
-    // Estado para guardar os dados do formulário (agora chamado 'currentGranja')
-    const [currentGranja, setCurrentGranja] = useState({ id: 0, nome: '', localizacao: '' });
+const initialFormState = { id: 0, nome: '', localizacao: '', usuarioId: null };
 
-    // Envolvemos fetchGranjas com useCallback para otimização
-    const fetchGranjas = useCallback(async () => {
+function GranjasPage() {
+    const { user } = useContext(AuthContext);
+    const [granjas, setGranjas] = useState([]);
+    const [produtores, setProdutores] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [currentGranja, setCurrentGranja] = useState(initialFormState);
+    const [isEditMode, setIsEditMode] = useState(false);
+
+    const fetchData = useCallback(async () => {
         try {
-            const response = await apiService.getGranjas();
-            setGranjas(response.data);
+            const granjasRes = await apiService.getGranjas();
+            setGranjas(granjasRes.data);
+
+            if (user?.role === 'Administrador') {
+                const usersRes = await apiService.getUsers();
+                setProdutores(usersRes.data.filter(u => u.perfilNome === 'Produtor'));
+            }
         } catch (error) {
-            console.error("Houve um erro ao buscar as granjas:", error);
+            console.error("Houve um erro ao buscar os dados:", error);
         }
-    }, []);
+    }, [user?.role]);
 
     useEffect(() => {
-        fetchGranjas();
-    }, [fetchGranjas]);
+        fetchData();
+    }, [fetchData]);
 
-    // Funções para controlar o modal
-    const handleClickOpen = (granja = { id: 0, nome: '', localizacao: '' }) => {
-        setCurrentGranja(granja); // Se for edição, carrega dados; se for criação, usa o objeto vazio
+    const handleClickOpen = (granja = null) => {
+        if (granja) {
+            setIsEditMode(true);
+            setCurrentGranja({ id: granja.id, nome: granja.nome, localizacao: granja.localizacao, usuarioId: granja.usuarioId });
+        } else {
+            setIsEditMode(false);
+            setCurrentGranja(initialFormState);
+        }
         setOpen(true);
     };
-    
-    const handleClose = () => {
-        setOpen(false);
-    };
 
+    const handleClose = () => setOpen(false);
+    
     const handleInputChange = (event) => {
         const { name, value } = event.target;
         setCurrentGranja({ ...currentGranja, [name]: value });
@@ -48,26 +57,38 @@ function GranjasPage() {
 
     const handleSubmit = async () => {
         try {
-            if (currentGranja.id === 0) {
-                // Criar nova granja
-                await apiService.createGranja({ nome: currentGranja.nome, localizacao: currentGranja.localizacao });
+            if (isEditMode) {
+                const updateDto = {
+                    nome: currentGranja.nome,
+                    localizacao: currentGranja.localizacao,
+                    usuarioId: currentGranja.usuarioId
+                };
+                await apiService.updateGranja(currentGranja.id, updateDto);
             } else {
-                // Atualizar granja existente
-                await apiService.updateGranja(currentGranja.id, currentGranja);
+                const createDto = {
+                    nome: currentGranja.nome,
+                    localizacao: currentGranja.localizacao,
+                    usuarioId: currentGranja.usuarioId ? parseInt(currentGranja.usuarioId, 10) : null
+                };
+                if (user?.role === 'Administrador' && !createDto.usuarioId) {
+                    alert('Como Administrador, você deve selecionar um produtor dono da granja.');
+                    return;
+                }
+                await apiService.createGranja(createDto);
             }
             handleClose();
-            fetchGranjas(); // Atualiza a lista
+            fetchData();
         } catch (error) {
             console.error("Houve um erro ao salvar a granja:", error);
+            alert("Ocorreu um erro ao salvar a granja.");
         }
     };
-
+    
     const handleDelete = async (id) => {
-        // Pede confirmação antes de excluir
         if (window.confirm('Tem certeza que deseja excluir esta granja?')) {
             try {
                 await apiService.deleteGranja(id);
-                fetchGranjas(); // Atualiza a lista
+                fetchData();
             } catch (error) {
                 console.error("Houve um erro ao excluir a granja:", error);
             }
@@ -80,16 +101,35 @@ function GranjasPage() {
                 <Typography variant="h4" component="h1">
                     Gerenciamento de Granjas
                 </Typography>
-                <Button variant="contained" onClick={() => handleClickOpen()}>
-                    Adicionar Nova Granja
-                </Button>
+                {user?.role !== 'Financeiro' && (
+                    <Button variant="contained" onClick={() => handleClickOpen()}>
+                        Adicionar Nova Granja
+                    </Button>
+                )}
             </Box>
 
             <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{currentGranja.id === 0 ? 'Cadastrar Nova Granja' : 'Editar Granja'}</DialogTitle>
+                <DialogTitle>{isEditMode ? 'Editar Granja' : 'Cadastrar Nova Granja'}</DialogTitle>
                 <DialogContent>
-                    <TextField autoFocus margin="dense" name="nome" label="Nome da Granja" type="text" fullWidth variant="standard" value={currentGranja.nome} onChange={handleInputChange}/>
-                    <TextField margin="dense" name="localizacao" label="Localização" type="text" fullWidth variant="standard" value={currentGranja.localizacao} onChange={handleInputChange}/>
+                    <TextField autoFocus margin="dense" required fullWidth name="nome" label="Nome da Granja" value={currentGranja.nome} onChange={handleInputChange} />
+                    <TextField margin="dense" fullWidth name="localizacao" label="Localização" value={currentGranja.localizacao || ''} onChange={handleInputChange} />
+                    
+                    {user?.role === 'Administrador' && (
+                        <FormControl fullWidth margin="normal" required>
+                            <InputLabel id="produtor-select-label">Dono (Produtor)</InputLabel>
+                            <Select
+                                name="usuarioId"
+                                labelId="produtor-select-label"
+                                value={currentGranja.usuarioId || ''}
+                                label="Dono (Produtor)"
+                                onChange={handleInputChange}
+                            >
+                                {produtores.map((p) => (
+                                    <MenuItem key={p.id} value={p.id}>{p.nome}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose}>Cancelar</Button>
@@ -99,28 +139,28 @@ function GranjasPage() {
 
             <TableContainer component={Paper}>
                 <Table>
-                    <TableHead style={{ backgroundColor: '#f5f5f5' }}>
+                    <TableHead>
                         <TableRow>
-                            <TableCell>ID</TableCell>
+                            <TableCell>Código</TableCell>
                             <TableCell>Nome</TableCell>
                             <TableCell>Localização</TableCell>
-                            <TableCell align="right">Ações</TableCell>
+                            {user?.role === 'Administrador' && <TableCell>Dono</TableCell>}
+                            {user?.role !== 'Financeiro' && <TableCell align="right">Ações</TableCell>}
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         {granjas.map((granja) => (
                             <TableRow key={granja.id}>
-                                <TableCell>{granja.id}</TableCell>
+                                <TableCell>{granja.codigo}</TableCell>
                                 <TableCell>{granja.nome}</TableCell>
                                 <TableCell>{granja.localizacao}</TableCell>
-                                <TableCell align="right">
-                                    <IconButton onClick={() => handleClickOpen(granja)}>
-                                        <EditIcon />
-                                    </IconButton>
-                                    <IconButton onClick={() => handleDelete(granja.id)}>
-                                        <DeleteIcon />
-                                    </IconButton>
-                                </TableCell>
+                                {user?.role === 'Administrador' && <TableCell>{granja.usuario?.nome || 'N/A'}</TableCell>}
+                                {user?.role !== 'Financeiro' && (
+                                    <TableCell align="right">
+                                        <IconButton onClick={() => handleClickOpen(granja)}><EditIcon /></IconButton>
+                                        <IconButton onClick={() => handleDelete(granja.id)}><DeleteIcon /></IconButton>
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))}
                     </TableBody>

@@ -3,6 +3,7 @@ using System;
 using GranjaTech.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GranjaTech.Infrastructure.Migrations
 {
     [DbContext(typeof(GranjaTechDbContext))]
-    partial class GranjaTechDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250819173529_AddManyToManyFinanceiroProdutor")]
+    partial class AddManyToManyFinanceiroProdutor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,10 +48,6 @@ namespace GranjaTech.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Localizacao")
                         .HasColumnType("text");
 
@@ -66,37 +65,6 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.ToTable("Granjas");
                 });
 
-            modelBuilder.Entity("GranjaTech.Domain.LogAuditoria", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Acao")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Detalhes")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UsuarioEmail")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LogsAuditoria");
-                });
-
             modelBuilder.Entity("GranjaTech.Domain.Lote", b =>
                 {
                     b.Property<int>("Id")
@@ -104,10 +72,6 @@ namespace GranjaTech.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<DateTime>("DataEntrada")
                         .HasColumnType("timestamp with time zone");
@@ -206,10 +170,6 @@ namespace GranjaTech.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("text");
@@ -277,8 +237,7 @@ namespace GranjaTech.Infrastructure.Migrations
                 {
                     b.HasOne("GranjaTech.Domain.Lote", "Lote")
                         .WithMany()
-                        .HasForeignKey("LoteId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("LoteId");
 
                     b.Navigation("Lote");
                 });

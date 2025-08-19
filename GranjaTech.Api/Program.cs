@@ -24,6 +24,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddHttpContextAccessor();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
@@ -33,6 +34,8 @@ builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFinancasService, FinancasService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>(); // Confirme que esta linha existe
 
 
 builder.Services.AddAuthentication(options =>
