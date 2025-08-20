@@ -6,6 +6,8 @@ namespace GranjaTech.Application.DTOs
     {
         public string Identificador { get; set; }
         public int QuantidadeAvesInicial { get; set; }
+        public DateTime? DataSaida { get; set; } // ADICIONE ESTA LINHA
+
         public DateTime DataEntrada { get; set; }
         public int GranjaId { get; set; }
     }

@@ -35,7 +35,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdClaim))
             {
-                throw new InvalidOperationException("Não foi possível identificar o usuário logado (ID não encontrado no token).");
+                throw new InvalidOperationException("Não foi possível identificar o utilizador logado (ID não encontrado no token).");
             }
             return int.Parse(userIdClaim);
         }
@@ -94,7 +94,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             await _context.Usuarios.AddAsync(novoUsuario);
             await _context.SaveChangesAsync();
 
-            await _auditoriaService.RegistrarLog("CRIACAO_USUARIO", $"Usuário '{novoUsuario.Email}' (Código: {novoUsuario.Codigo}) foi criado.");
+            await _auditoriaService.RegistrarLog("CRIACAO_USUARIO", $"Utilizador '{novoUsuario.Email}' (Código: {novoUsuario.Codigo}) foi criado.");
 
             if (registerDto.PerfilId == 3 && registerDto.ProdutorIds != null && registerDto.ProdutorIds.Any())
             {
@@ -103,7 +103,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                     _context.FinanceiroProdutor.Add(new FinanceiroProdutor { FinanceiroId = novoUsuario.Id, ProdutorId = produtorId });
                 }
                 await _context.SaveChangesAsync();
-                await _auditoriaService.RegistrarLog("ASSOCIACAO_USUARIO", $"Usuário Financeiro '{novoUsuario.Email}' associado aos Produtores IDs: {string.Join(", ", registerDto.ProdutorIds)}.");
+                await _auditoriaService.RegistrarLog("ASSOCIACAO_USUARIO", $"Utilizador Financeiro '{novoUsuario.Email}' associado aos Produtores IDs: {string.Join(", ", registerDto.ProdutorIds)}.");
             }
             return true;
         }
@@ -126,7 +126,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
             _context.Usuarios.Update(usuario);
             await _context.SaveChangesAsync();
-            await _auditoriaService.RegistrarLog("ATUALIZACAO_USUARIO", $"Usuário '{usuario.Email}' (ID: {usuario.Id}) foi atualizado.");
+            await _auditoriaService.RegistrarLog("ATUALIZACAO_USUARIO", $"Utilizador '{usuario.Email}' (ID: {usuario.Id}) foi atualizado.");
             return true;
         }
 
@@ -138,13 +138,13 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             if (usuario.Perfil.Nome == "Produtor")
             {
                 if (await _context.Granjas.AnyAsync(g => g.UsuarioId == id)) throw new InvalidOperationException("Este produtor possui granjas e/ou lotes associados e não pode ser excluído.");
-                if (await _context.FinanceiroProdutor.AnyAsync(fp => fp.ProdutorId == id)) throw new InvalidOperationException("Este produtor está associado a um ou mais usuários financeiros e não pode ser excluído.");
+                if (await _context.FinanceiroProdutor.AnyAsync(fp => fp.ProdutorId == id)) throw new InvalidOperationException("Este produtor está associado a um ou mais utilizadores financeiros e não pode ser excluído.");
             }
 
             var nomeUsuarioDeletado = usuario.Nome;
             _context.Usuarios.Remove(usuario);
             await _context.SaveChangesAsync();
-            await _auditoriaService.RegistrarLog("DELECAO_USUARIO", $"Usuário '{nomeUsuarioDeletado}' (ID: {id}) foi deletado.");
+            await _auditoriaService.RegistrarLog("DELECAO_USUARIO", $"Utilizador '{nomeUsuarioDeletado}' (ID: {id}) foi deletado.");
             return true;
         }
 
@@ -156,17 +156,39 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             return new LoginResponseDto { Token = token };
         }
 
-        public async Task<UpdateProfileDto?> GetProfileAsync()
+        public async Task<ProfileDetailDto?> GetProfileAsync()
         {
             var userId = GetCurrentUserId();
-            var usuario = await _context.Usuarios.FindAsync(userId);
+            var usuario = await _context.Usuarios
+                .Include(u => u.Perfil)
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (usuario == null) return null;
 
-            return new UpdateProfileDto
+            var associados = new List<string>();
+            if (usuario.Perfil.Nome == "Produtor")
+            {
+                associados = await _context.FinanceiroProdutor
+                    .Where(fp => fp.ProdutorId == userId)
+                    .Include(fp => fp.Financeiro)
+                    .Select(fp => fp.Financeiro.Nome)
+                    .ToListAsync();
+            }
+            else if (usuario.Perfil.Nome == "Financeiro")
+            {
+                associados = await _context.FinanceiroProdutor
+                    .Where(fp => fp.FinanceiroId == userId)
+                    .Include(fp => fp.Produtor)
+                    .Select(fp => fp.Produtor.Nome)
+                    .ToListAsync();
+            }
+
+            return new ProfileDetailDto
             {
                 Nome = usuario.Nome,
-                Email = usuario.Email
+                Email = usuario.Email,
+                PerfilNome = usuario.Perfil.Nome,
+                Associados = associados
             };
         }
 
@@ -187,7 +209,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
             _context.Usuarios.Update(usuario);
             await _context.SaveChangesAsync();
-            await _auditoriaService.RegistrarLog("ATUALIZACAO_PERFIL", $"Usuário (ID: {userId}) atualizou o próprio perfil.");
+            await _auditoriaService.RegistrarLog("ATUALIZACAO_PERFIL", $"Utilizador (ID: {userId}) atualizou o próprio perfil.");
             return true;
         }
 
@@ -206,7 +228,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             usuario.SenhaHash = BCrypt.Net.BCrypt.HashPassword(passwordDto.NovaSenha);
             _context.Usuarios.Update(usuario);
             await _context.SaveChangesAsync();
-            await _auditoriaService.RegistrarLog("TROCA_SENHA", $"Usuário (ID: {userId}) alterou a própria senha.");
+            await _auditoriaService.RegistrarLog("TROCA_SENHA", $"Utilizador (ID: {userId}) alterou a própria senha.");
             return true;
         }
 

@@ -10,8 +10,11 @@ namespace GranjaTech.Domain
         public string Tipo { get; set; } = string.Empty; // "Entrada" ou "Saida"
         public DateTime Data { get; set; }
 
-        // Chave estrangeira opcional para Lote
-        // A interrogação '?' torna o campo anulável
+        // ADICIONE AS PROPRIEDADES ABAIXO
+        public DateTime TimestampCriacao { get; set; } // Guarda a data/hora exata da criação
+        public int UsuarioId { get; set; } // Guarda quem criou
+        public Usuario Usuario { get; set; } = null!;
+
         public int? LoteId { get; set; }
         public Lote? Lote { get; set; }
     }

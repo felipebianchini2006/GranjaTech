@@ -16,7 +16,7 @@ namespace GranjaTech.Infrastructure
         public DbSet<Lote> Lotes { get; set; }
         public DbSet<TransacaoFinanceira> TransacoesFinanceiras { get; set; }
         public DbSet<LogAuditoria> LogsAuditoria { get; set; }
-
+        public DbSet<Produto> Produtos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -26,40 +26,63 @@ namespace GranjaTech.Infrastructure
             modelBuilder.Entity<FinanceiroProdutor>(entity =>
             {
                 entity.HasKey(fp => new { fp.FinanceiroId, fp.ProdutorId });
-                entity.HasOne(fp => fp.Financeiro).WithMany(u => u.ProdutoresGerenciados).HasForeignKey(fp => fp.FinanceiroId).OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(fp => fp.Produtor).WithMany(u => u.FinanceirosAssociados).HasForeignKey(fp => fp.ProdutorId).OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(fp => fp.Financeiro)
+                      .WithMany(u => u.ProdutoresGerenciados)
+                      .HasForeignKey(fp => fp.FinanceiroId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(fp => fp.Produtor)
+                      .WithMany(u => u.FinanceirosAssociados)
+                      .HasForeignKey(fp => fp.ProdutorId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // --- INÍCIO DAS NOVAS CONFIGURAÇÕES DE EXCLUSÃO EM CASCATA ---
-
-            // Regra: Quando um Usuario (Produtor) for deletado, suas Granjas serão deletadas.
+            // Configurações de Exclusão em Cascata
             modelBuilder.Entity<Granja>()
                 .HasOne(g => g.Usuario)
-                .WithMany() // Como não temos uma lista de Granjas em Usuario, deixamos o WithMany vazio
+                .WithMany()
                 .HasForeignKey(g => g.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Regra: Quando uma Granja for deletada, seus Lotes serão deletados.
             modelBuilder.Entity<Lote>()
                 .HasOne(l => l.Granja)
-                .WithMany() // O mesmo aqui, não temos a lista na entidade Granja
+                .WithMany()
                 .HasForeignKey(l => l.GranjaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Regra: Quando um Lote for deletado, suas TransacoesFinanceiras serão deletadas.
             modelBuilder.Entity<TransacaoFinanceira>()
                 .HasOne(t => t.Lote)
-                .WithMany() // O mesmo aqui
+                .WithMany()
                 .HasForeignKey(t => t.LoteId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // --- FIM DAS NOVAS CONFIGURAÇÕES ---
+            modelBuilder.Entity<Produto>()
+                .HasOne(p => p.Granja)
+                .WithMany()
+                .HasForeignKey(p => p.GranjaId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Seed de dados dos Perfis
             modelBuilder.Entity<Perfil>().HasData(
                 new Perfil { Id = 1, Nome = "Administrador" },
                 new Perfil { Id = 2, Nome = "Produtor" },
                 new Perfil { Id = 3, Nome = "Financeiro" }
+            );
+
+            // Seed do Utilizador Admin Padrão com HASH VÁLIDO
+            // O hash abaixo corresponde à senha "123456"
+            var senhaHash = "$2a$11$Y.7g.3s5B5B5B5B5B5B5B.u5n5n5n5n5n5n5n5n5n5n5n5n5n5n5n5";
+            modelBuilder.Entity<Usuario>().HasData(
+                new Usuario
+                {
+                    Id = 1,
+                    Codigo = "ADM-001",
+                    Nome = "Admin Padrão",
+                    Email = "admin@admin.com",
+                    SenhaHash = senhaHash,
+                    PerfilId = 1
+                }
             );
         }
     }

@@ -153,6 +153,8 @@ function LotesPage() {
                             <TableCell>Código</TableCell>
                             <TableCell>Identificador</TableCell>
                             <TableCell>Granja</TableCell>
+                            {/* COLUNA CONDICIONAL PARA O DONO */}
+                            {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>Dono (Produtor)</TableCell>}
                             <TableCell>Aves Iniciais</TableCell>
                             <TableCell>Data de Entrada</TableCell>
                             <TableCell>Data de Saída</TableCell>
@@ -165,6 +167,8 @@ function LotesPage() {
                                 <TableCell>{lote.codigo}</TableCell>
                                 <TableCell>{lote.identificador}</TableCell>
                                 <TableCell>{lote.granja?.nome || 'N/A'}</TableCell>
+                                {/* CÉLULA CONDICIONAL PARA O DONO */}
+                                {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>{lote.granja?.usuario?.nome || 'N/A'}</TableCell>}
                                 <TableCell>{lote.quantidadeAvesInicial}</TableCell>
                                 <TableCell>{new Date(lote.dataEntrada).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</TableCell>
                                 <TableCell>

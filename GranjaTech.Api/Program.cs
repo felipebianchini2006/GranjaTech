@@ -36,6 +36,8 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFinancasService, FinancasService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IAuditoriaService, AuditoriaService>(); // Confirme que esta linha existe
+builder.Services.AddScoped<IEstoqueService, EstoqueService>();
+
 
 
 builder.Services.AddAuthentication(options =>

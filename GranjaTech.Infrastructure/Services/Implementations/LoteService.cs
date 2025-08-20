@@ -31,7 +31,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
             if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(userRoleClaim))
             {
-                throw new InvalidOperationException("Não foi possível identificar o usuário logado.");
+                throw new InvalidOperationException("Não foi possível identificar o utilizador logado.");
             }
 
             return (int.Parse(userIdClaim), userRoleClaim);
@@ -40,7 +40,10 @@ namespace GranjaTech.Infrastructure.Services.Implementations
         public async Task<IEnumerable<Lote>> GetAllAsync()
         {
             var (userId, userRole) = GetCurrentUser();
-            IQueryable<Lote> query = _context.Lotes.Include(l => l.Granja);
+            // CORREÇÃO AQUI: Adicionamos .ThenInclude(g => g.Usuario)
+            IQueryable<Lote> query = _context.Lotes
+                .Include(l => l.Granja)
+                    .ThenInclude(g => g.Usuario);
 
             if (userRole == "Administrador") { }
             else if (userRole == "Produtor")
@@ -58,7 +61,12 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
         public async Task<Lote?> GetByIdAsync(int id)
         {
-            var lote = await _context.Lotes.Include(l => l.Granja).FirstOrDefaultAsync(l => l.Id == id);
+            // CORREÇÃO AQUI TAMBÉM
+            var lote = await _context.Lotes
+                .Include(l => l.Granja)
+                    .ThenInclude(g => g.Usuario)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
             if (lote == null) return null;
 
             var (userId, userRole) = GetCurrentUser();
@@ -76,7 +84,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
         public async Task AddAsync(CreateLoteDto loteDto)
         {
             var (userId, userRole) = GetCurrentUser();
-            if (userRole == "Financeiro") throw new InvalidOperationException("Usuários do perfil Financeiro não podem criar lotes.");
+            if (userRole == "Financeiro") throw new InvalidOperationException("Utilizadores do perfil Financeiro não podem criar lotes.");
 
             var granjaAlvo = await _context.Granjas.FindAsync(loteDto.GranjaId);
             if (granjaAlvo == null) return;
@@ -94,6 +102,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                     Identificador = loteDto.Identificador,
                     QuantidadeAvesInicial = loteDto.QuantidadeAvesInicial,
                     DataEntrada = loteDto.DataEntrada,
+                    DataSaida = loteDto.DataSaida,
                     GranjaId = loteDto.GranjaId
                 };
                 await _context.Lotes.AddAsync(lote);
@@ -105,7 +114,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
         public async Task<bool> UpdateAsync(int id, UpdateLoteDto loteDto)
         {
             var (userId, userRole) = GetCurrentUser();
-            if (userRole == "Financeiro") throw new InvalidOperationException("Usuários do perfil Financeiro não podem editar lotes.");
+            if (userRole == "Financeiro") throw new InvalidOperationException("Utilizadores do perfil Financeiro não podem editar lotes.");
 
             var loteExistente = await GetByIdAsync(id);
             if (loteExistente == null) return false;
@@ -125,7 +134,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
         public async Task DeleteAsync(int id)
         {
             var (userId, userRole) = GetCurrentUser();
-            if (userRole == "Financeiro") throw new InvalidOperationException("Usuários do perfil Financeiro não podem deletar lotes.");
+            if (userRole == "Financeiro") throw new InvalidOperationException("Utilizadores do perfil Financeiro não podem deletar lotes.");
 
             var loteParaDeletar = await GetByIdAsync(id);
             if (loteParaDeletar != null)

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
-import { Button, TextField, Box, Typography, Container, Paper, Grid, Alert } from '@mui/material';
+import { Button, TextField, Box, Typography, Container, Paper, Grid, Alert, Chip } from '@mui/material';
 
 function ProfilePage() {
+    // Estado para o formulário de edição
     const [profileData, setProfileData] = useState({ nome: '', email: '' });
+    // Estado para os detalhes completos do perfil (incluindo cargo e associações)
+    const [profileDetails, setProfileDetails] = useState(null);
     const [passwordData, setPasswordData] = useState({ senhaAtual: '', novaSenha: '', confirmaNovaSenha: '' });
     
     const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
@@ -12,7 +15,9 @@ function ProfilePage() {
     const fetchProfile = useCallback(async () => {
         try {
             const response = await apiService.getProfile();
-            setProfileData(response.data);
+            setProfileDetails(response.data);
+            // Popula o formulário de edição com os dados recebidos
+            setProfileData({ nome: response.data.nome, email: response.data.email });
         } catch (error) {
             console.error("Erro ao buscar perfil:", error);
             setProfileMessage({ type: 'error', text: 'Erro ao carregar dados do perfil.' });
@@ -41,6 +46,7 @@ function ProfilePage() {
         try {
             await apiService.updateProfile(profileData);
             setProfileMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
+            fetchProfile(); // Re-busca os dados para atualizar o nome no topo, se alterado
         } catch (error) {
             setProfileMessage({ type: 'error', text: error.response?.data?.message || 'Erro ao atualizar perfil.' });
         }
@@ -69,6 +75,31 @@ function ProfilePage() {
         <Container maxWidth="md" sx={{ mt: 4 }}>
             <Typography variant="h4" gutterBottom>Meu Perfil</Typography>
             <Grid container spacing={4}>
+                {/* NOVO PAINEL DE INFORMAÇÕES DE CARGO */}
+                {profileDetails && (
+                    <Grid item xs={12}>
+                        <Paper sx={{ p: 3, mb: 2 }}>
+                            <Typography variant="h6" gutterBottom>Informações do Cargo</Typography>
+                            <Typography variant="body1">
+                                <strong>Cargo:</strong> {profileDetails.perfilNome}
+                            </Typography>
+                            {profileDetails.associados.length > 0 && (
+                                <Box sx={{ mt: 2 }}>
+                                    <Typography variant="body1" component="strong">
+                                        {profileDetails.perfilNome === 'Produtor' ? 'Responsável por:' : 'Financeiro de:'}
+                                    </Typography>
+                                    <Box sx={{ mt: 1 }}>
+                                        {profileDetails.associados.map((nome, index) => (
+                                            <Chip key={index} label={nome} sx={{ mr: 1, mt: 1 }} />
+                                        ))}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Paper>
+                    </Grid>
+                )}
+
+                {/* Formulário de Informações do Perfil */}
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 3 }}>
                         <Typography variant="h6" gutterBottom>Editar Informações</Typography>
@@ -80,6 +111,7 @@ function ProfilePage() {
                         </Box>
                     </Paper>
                 </Grid>
+                {/* Formulário de Alteração de Senha */}
                 <Grid item xs={12} md={6}>
                     <Paper sx={{ p: 3 }}>
                         <Typography variant="h6" gutterBottom>Alterar Senha</Typography>

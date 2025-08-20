@@ -144,7 +144,8 @@ function GranjasPage() {
                             <TableCell>Código</TableCell>
                             <TableCell>Nome</TableCell>
                             <TableCell>Localização</TableCell>
-                            {user?.role === 'Administrador' && <TableCell>Dono</TableCell>}
+                            {/* COLUNA CONDICIONAL PARA O DONO */}
+                            {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>Dono (Produtor)</TableCell>}
                             {user?.role !== 'Financeiro' && <TableCell align="right">Ações</TableCell>}
                         </TableRow>
                     </TableHead>
@@ -154,7 +155,8 @@ function GranjasPage() {
                                 <TableCell>{granja.codigo}</TableCell>
                                 <TableCell>{granja.nome}</TableCell>
                                 <TableCell>{granja.localizacao}</TableCell>
-                                {user?.role === 'Administrador' && <TableCell>{granja.usuario?.nome || 'N/A'}</TableCell>}
+                                {/* CÉLULA CONDICIONAL PARA O DONO */}
+                                {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>{granja.usuario?.nome || 'N/A'}</TableCell>}
                                 {user?.role !== 'Financeiro' && (
                                     <TableCell align="right">
                                         <IconButton onClick={() => handleClickOpen(granja)}><EditIcon /></IconButton>

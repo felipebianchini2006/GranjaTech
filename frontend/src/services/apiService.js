@@ -20,15 +20,15 @@ apiClient.interceptors.request.use(
 );
 
 const apiService = {
-    // Funções de Autenticação
+    // Funções de Autenticação e Utilizadores
     login: (credenciais) => apiClient.post('/auth/login', credenciais),
-    registrar: (dadosDeRegistro) => apiClient.post('/auth/registrar', dadosDeRegistro),
+    registrar: (dadosDeRegisto) => apiClient.post('/auth/registrar', dadosDeRegisto),
     getUsers: () => apiClient.get('/auth/usuarios'),
     getUserById: (id) => apiClient.get(`/auth/usuarios/${id}`),
     updateUser: (id, userData) => apiClient.put(`/auth/usuarios/${id}`, userData),
     deleteUser: (id) => apiClient.delete(`/auth/usuarios/${id}`),
     
-    // Funções de Perfil
+    // Funções de Perfil do Utilizador
     getProfile: () => apiClient.get('/profile'),
     updateProfile: (profileData) => apiClient.put('/profile', profileData),
     changePassword: (passwordData) => apiClient.post('/profile/change-password', passwordData),
@@ -48,6 +48,7 @@ const apiService = {
     // Funções Financeiras
     getTransacoes: () => apiClient.get('/financas'),
     createTransacao: (novaTransacao) => apiClient.post('/financas', novaTransacao),
+    updateTransacao: (id, transacaoData) => apiClient.put(`/financas/${id}`, transacaoData),
     deleteTransacao: (id) => apiClient.delete(`/financas/${id}`),
 
     // Funções do Dashboard
@@ -56,6 +57,12 @@ const apiService = {
 
     // Função de Auditoria
     getAuditLogs: () => apiClient.get('/auditoria'),
+
+    // ADICIONE AS FUNÇÕES DE ESTOQUE ABAIXO
+    getEstoque: () => apiClient.get('/estoque'),
+    createProduto: (novoProduto) => apiClient.post('/estoque', novoProduto),
+    updateProduto: (id, produtoAtualizado) => apiClient.put(`/estoque/${id}`, produtoAtualizado),
+    deleteProduto: (id) => apiClient.delete(`/estoque/${id}`),
 };
 
 export default apiService;

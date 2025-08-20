@@ -8,6 +8,7 @@ import FinanceiroPage from './pages/FinanceiroPage';
 import DashboardPage from './pages/DashboardPage';
 import AuditoriaPage from './pages/AuditoriaPage';
 import ProfilePage from './pages/ProfilePage';
+import EstoquePage from './pages/EstoquePage'; // Importe a nova página
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthContext } from './context/AuthContext';
 import { Box, AppBar, Toolbar, Button, Typography } from '@mui/material';
@@ -30,12 +31,17 @@ function App() {
                 <Button color="inherit" component={Link} to="/granjas">Granjas</Button>
                 <Button color="inherit" component={Link} to="/lotes">Lotes</Button>
                 
+                {/* ADICIONE O NOVO LINK CONDICIONAL */}
+                {(user?.role === 'Administrador' || user?.role === 'Produtor') && (
+                   <Button color="inherit" component={Link} to="/estoque">Estoque</Button>
+                )}
+
                 {(user?.role === 'Administrador' || user?.role === 'Financeiro') && (
                    <Button color="inherit" component={Link} to="/financeiro">Financeiro</Button>
                 )}
 
                 {user?.role === 'Administrador' && (
-                   <Button color="inherit" component={Link} to="/usuarios">Usuários</Button>
+                   <Button color="inherit" component={Link} to="/usuarios">Utilizadores</Button>
                 )}
                 
                 {user?.role === 'Administrador' && (
@@ -59,6 +65,7 @@ function App() {
           <Route path="/financeiro" element={<ProtectedRoute><FinanceiroPage /></ProtectedRoute>} />
           <Route path="/auditoria" element={<ProtectedRoute><AuditoriaPage /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/estoque" element={<ProtectedRoute><EstoquePage /></ProtectedRoute>} /> {/* Nova rota protegida */}
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

@@ -13,8 +13,8 @@ namespace GranjaTech.Application.Services.Interfaces
         Task<bool> UpdateUserAsync(int id, UpdateUserDto updateUserDto);
         Task<bool> DeleteUserAsync(int id);
 
-        // Métodos de Perfil
-        Task<UpdateProfileDto?> GetProfileAsync();
+        // Assinatura do método alterada para retornar o novo DTO
+        Task<ProfileDetailDto?> GetProfileAsync();
         Task<bool> UpdateProfileAsync(UpdateProfileDto profileDto);
         Task<bool> ChangePasswordAsync(ChangePasswordDto passwordDto);
     }

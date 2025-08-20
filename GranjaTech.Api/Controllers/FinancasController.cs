@@ -1,12 +1,14 @@
-﻿using GranjaTech.Application.Services.Interfaces;
+﻿using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
 {
-    [Authorize] // Protege o controller inteiro
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class FinancasController : ControllerBase
@@ -28,13 +30,28 @@ namespace GranjaTech.Api.Controllers
 
         [Authorize(Roles = "Administrador,Financeiro")]
         [HttpPost]
-        public async Task<IActionResult> PostTransacao(TransacaoFinanceira transacao)
+        public async Task<IActionResult> PostTransacao(CreateTransacaoDto transacaoDto) // Parâmetro alterado
         {
-            await _financasService.AddAsync(transacao);
-            return Ok(new { message = "Transação registrada com sucesso." });
+            await _financasService.AddAsync(transacaoDto);
+            return Ok(new { message = "Transação registada com sucesso." });
         }
 
-        // NOVO ENDPOINT DE EXCLUSÃO
+        [Authorize(Roles = "Administrador,Financeiro")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutTransacao(int id, UpdateTransacaoDto transacaoDto)
+        {
+            try
+            {
+                var sucesso = await _financasService.UpdateAsync(id, transacaoDto);
+                if (!sucesso) return NotFound("Transação não encontrada.");
+                return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [Authorize(Roles = "Administrador")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTransacao(int id)

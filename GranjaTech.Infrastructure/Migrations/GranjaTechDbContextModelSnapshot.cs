@@ -166,6 +166,39 @@ namespace GranjaTech.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("GranjaTech.Domain.Produto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("GranjaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Quantidade")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UnidadeDeMedida")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GranjaId");
+
+                    b.ToTable("Produtos");
+                });
+
             modelBuilder.Entity("GranjaTech.Domain.TransacaoFinanceira", b =>
                 {
                     b.Property<int>("Id")
@@ -184,9 +217,15 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.Property<int?>("LoteId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime>("TimestampCriacao")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("numeric");
@@ -194,6 +233,8 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LoteId");
+
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("TransacoesFinanceiras");
                 });
@@ -230,6 +271,17 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.HasIndex("PerfilId");
 
                     b.ToTable("Usuarios");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Codigo = "ADM-001",
+                            Email = "admin@admin.com",
+                            Nome = "Admin Padrão",
+                            PerfilId = 1,
+                            SenhaHash = "$2a$11$Y.7g.3s5B5B5B5B5B5B5B.u5n5n5n5n5n5n5n5n5n5n5n5n5n5n5n5"
+                        });
                 });
 
             modelBuilder.Entity("GranjaTech.Domain.FinanceiroProdutor", b =>
@@ -237,13 +289,13 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.HasOne("GranjaTech.Domain.Usuario", "Financeiro")
                         .WithMany("ProdutoresGerenciados")
                         .HasForeignKey("FinanceiroId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("GranjaTech.Domain.Usuario", "Produtor")
                         .WithMany("FinanceirosAssociados")
                         .HasForeignKey("ProdutorId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Financeiro");
@@ -273,6 +325,17 @@ namespace GranjaTech.Infrastructure.Migrations
                     b.Navigation("Granja");
                 });
 
+            modelBuilder.Entity("GranjaTech.Domain.Produto", b =>
+                {
+                    b.HasOne("GranjaTech.Domain.Granja", "Granja")
+                        .WithMany()
+                        .HasForeignKey("GranjaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Granja");
+                });
+
             modelBuilder.Entity("GranjaTech.Domain.TransacaoFinanceira", b =>
                 {
                     b.HasOne("GranjaTech.Domain.Lote", "Lote")
@@ -280,7 +343,15 @@ namespace GranjaTech.Infrastructure.Migrations
                         .HasForeignKey("LoteId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("GranjaTech.Domain.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Lote");
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("GranjaTech.Domain.Usuario", b =>

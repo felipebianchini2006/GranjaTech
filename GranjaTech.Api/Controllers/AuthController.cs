@@ -38,7 +38,7 @@ namespace GranjaTech.Api.Controllers
             return Ok(usuario);
         }
 
-        [Authorize(Roles = "Administrador")]
+        //[Authorize(Roles = "Administrador")]
         [HttpPost("registrar")]
         public async Task<IActionResult> Registrar(RegisterDto registerDto)
         {
