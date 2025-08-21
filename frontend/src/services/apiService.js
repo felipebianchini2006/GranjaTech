@@ -58,11 +58,21 @@ const apiService = {
     // Função de Auditoria
     getAuditLogs: () => apiClient.get('/auditoria'),
 
-    // ADICIONE AS FUNÇÕES DE ESTOQUE ABAIXO
+    // Funções de Estoque
     getEstoque: () => apiClient.get('/estoque'),
     createProduto: (novoProduto) => apiClient.post('/estoque', novoProduto),
     updateProduto: (id, produtoAtualizado) => apiClient.put(`/estoque/${id}`, produtoAtualizado),
     deleteProduto: (id) => apiClient.delete(`/estoque/${id}`),
+
+    // Funções de Sensores
+    getSensores: () => apiClient.get('/sensores'),
+    createSensor: (novoSensor) => apiClient.post('/sensores', novoSensor),
+    deleteSensor: (id) => apiClient.delete(`/sensores/${id}`),
+    getLeituras: (sensorId) => apiClient.get(`/sensores/${sensorId}/leituras`),
+
+    // Funções de Relatórios
+    getRelatorioFinanceiro: (params) => apiClient.get('/relatorios/financeiro', { params }),
+    getRelatorioProducao: (params) => apiClient.get('/relatorios/producao', { params }),
 };
 
 export default apiService;

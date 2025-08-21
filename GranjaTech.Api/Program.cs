@@ -6,10 +6,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization; // Adicione este using
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Início da Seção de Configuração de Serviços ---
+// --- Início da Secção de Configuração de Serviços ---
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -23,22 +24,28 @@ builder.Services.AddCors(options =>
                       });
 });
 
-builder.Services.AddControllers();
+// A CORREÇÃO ESTÁ AQUI: Adicionamos a configuração para o serializador JSON
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
+
 builder.Services.AddHttpContextAccessor();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Registo dos Serviços
 builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFinancasService, FinancasService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
-builder.Services.AddScoped<IAuditoriaService, AuditoriaService>(); // Confirme que esta linha existe
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
-
-
+builder.Services.AddScoped<ISensorService, SensorService>();
+builder.Services.AddScoped<IRelatorioService, RelatorioService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -61,42 +68,18 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 
-// --- INÍCIO DA CORREÇÃO NO SWAGGER ---
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "GranjaTech API", Version = "v1" });
-
-    // A configuração foi alterada para usar o tipo 'Http' com o esquema 'Bearer'
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "Insira o token JWT desta forma: Bearer {seu token}",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.Http, // Alterado de ApiKey para Http
-        Scheme = "bearer", // Recomenda-se minúsculo por convenção
-        BearerFormat = "JWT"
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
-    });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Description = "Insira o token JWT desta forma: Bearer {seu token}", Name = "Authorization", In = ParameterLocation.Header, Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT" });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, new string[] { } } });
 });
-// --- FIM DA CORREÇÃO NO SWAGGER ---
+
+// --- Fim da Secção de Configuração de Serviços ---
 
 var app = builder.Build();
 
-// --- Início da Seção de Configuração do Pipeline HTTP ---
+// --- Início da Secção de Configuração do Pipeline HTTP ---
 
 if (app.Environment.IsDevelopment())
 {
@@ -110,13 +93,10 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors(MyAllowSpecificOrigins);
-
-// A ordem aqui é crucial: Autenticação primeiro, depois Autorização.
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
-// --- Fim da Seção de Configuração do Pipeline HTTP ---
+// --- Fim da Secção de Configuração do Pipeline HTTP ---
 
 app.Run();

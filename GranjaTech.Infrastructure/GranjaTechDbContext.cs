@@ -17,6 +17,8 @@ namespace GranjaTech.Infrastructure
         public DbSet<TransacaoFinanceira> TransacoesFinanceiras { get; set; }
         public DbSet<LogAuditoria> LogsAuditoria { get; set; }
         public DbSet<Produto> Produtos { get; set; }
+        public DbSet<Sensor> Sensores { get; set; }
+        public DbSet<LeituraSensor> LeiturasSensores { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -63,6 +65,18 @@ namespace GranjaTech.Infrastructure
                 .HasForeignKey(p => p.GranjaId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Sensor>()
+                .HasOne(s => s.Granja)
+                .WithMany()
+                .HasForeignKey(s => s.GranjaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<LeituraSensor>()
+                .HasOne(l => l.Sensor)
+                .WithMany(s => s.Leituras)
+                .HasForeignKey(l => l.SensorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Seed de dados dos Perfis
             modelBuilder.Entity<Perfil>().HasData(
                 new Perfil { Id = 1, Nome = "Administrador" },
@@ -71,7 +85,6 @@ namespace GranjaTech.Infrastructure
             );
 
             // Seed do Utilizador Admin Padrão com HASH VÁLIDO
-            // O hash abaixo corresponde à senha "123456"
             var senhaHash = "$2a$11$Y.7g.3s5B5B5B5B5B5B5B.u5n5n5n5n5n5n5n5n5n5n5n5n5n5n5n5";
             modelBuilder.Entity<Usuario>().HasData(
                 new Usuario
