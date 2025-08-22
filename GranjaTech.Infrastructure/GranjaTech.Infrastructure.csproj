@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GranjaTech.Application\GranjaTech.Application.csproj" />
+    <ProjectReference Include="..\GranjaTech.Domain\GranjaTech.Domain.csproj" />
   </ItemGroup>
 
 	<ItemGroup>

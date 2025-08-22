@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace GranjaTech.Infrastructure.Services.Implementations
 {
@@ -16,122 +17,302 @@ namespace GranjaTech.Infrastructure.Services.Implementations
     {
         private readonly GranjaTechDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<RelatorioService> _logger;
 
-        public RelatorioService(GranjaTechDbContext context, IHttpContextAccessor httpContextAccessor)
+        public RelatorioService(
+            GranjaTechDbContext context,
+            IHttpContextAccessor httpContextAccessor,
+            ILogger<RelatorioService> logger)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         private (int userId, string userRole) GetCurrentUser()
         {
-            var user = _httpContextAccessor.HttpContext?.User;
-            if (user == null) throw new InvalidOperationException("Contexto de utilizador não encontrado.");
-
-            var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userRoleClaim = user.FindFirstValue(ClaimTypes.Role);
-
-            if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(userRoleClaim))
+            try
             {
-                throw new InvalidOperationException("Não foi possível identificar o utilizador logado (claims não encontradas no token).");
-            }
+                var user = _httpContextAccessor.HttpContext?.User;
+                if (user == null || !user.Identity.IsAuthenticated)
+                {
+                    _logger.LogWarning("Usuário não autenticado tentando acessar relatórios");
+                    throw new UnauthorizedAccessException("Usuário não autenticado.");
+                }
 
-            return (int.Parse(userIdClaim), userRoleClaim);
+                var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+                var userRoleClaim = user.FindFirstValue(ClaimTypes.Role);
+
+                if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(userRoleClaim))
+                {
+                    _logger.LogWarning("Claims de usuário não encontradas. UserIdClaim: {UserIdClaim}, UserRoleClaim: {UserRoleClaim}",
+                        userIdClaim, userRoleClaim);
+                    throw new UnauthorizedAccessException("Claims de usuário não encontradas no token.");
+                }
+
+                if (!int.TryParse(userIdClaim, out int userId))
+                {
+                    _logger.LogWarning("ID do usuário inválido: {UserIdClaim}", userIdClaim);
+                    throw new ArgumentException("ID do usuário inválido.");
+                }
+
+                _logger.LogInformation("Usuário autenticado: ID={UserId}, Role={UserRole}", userId, userRoleClaim);
+                return (userId, userRoleClaim);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao obter informações do usuário atual");
+                throw;
+            }
         }
 
         public async Task<RelatorioFinanceiroDto> GetRelatorioFinanceiroAsync(DateTime dataInicio, DateTime dataFim, int? granjaId)
         {
-            var (userId, userRole) = GetCurrentUser();
-
-            // Query para transações de lotes, que têm permissões complexas
-            var transacoesDeLotesQuery = _context.TransacoesFinanceiras
-                .Where(t => t.LoteId != null && t.Data.Date >= dataInicio.Date && t.Data.Date <= dataFim.Date);
-
-            if (userRole == "Produtor")
+            try
             {
-                transacoesDeLotesQuery = transacoesDeLotesQuery.Where(t => t.Lote.Granja.UsuarioId == userId);
-            }
-            else if (userRole == "Financeiro")
-            {
-                var produtorIds = await _context.FinanceiroProdutor.Where(fp => fp.FinanceiroId == userId).Select(fp => fp.ProdutorId).ToListAsync();
-                if (produtorIds.Any())
+                _logger.LogInformation("Iniciando geração de relatório financeiro. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
+
+                // Validação de datas
+                if (dataInicio > dataFim)
                 {
-                    transacoesDeLotesQuery = transacoesDeLotesQuery.Where(t => produtorIds.Contains(t.Lote.Granja.UsuarioId));
+                    throw new ArgumentException("A data de início não pode ser posterior à data de fim.");
                 }
-                else
+
+                if (dataInicio > DateTime.Now)
                 {
-                    transacoesDeLotesQuery = transacoesDeLotesQuery.Where(t => false); // Zera a query
+                    throw new ArgumentException("A data de início não pode ser futura.");
                 }
+
+                var (userId, userRole) = GetCurrentUser();
+
+                // Query base para transações de lotes
+                var transacoesDeLotesQuery = _context.TransacoesFinanceiras
+                    .Where(t => t.LoteId != null &&
+                                t.Data.Date >= dataInicio.Date &&
+                                t.Data.Date <= dataFim.Date);
+
+                // Aplicar filtros de permissão
+                switch (userRole)
+                {
+                    case "Produtor":
+                        transacoesDeLotesQuery = transacoesDeLotesQuery
+                            .Where(t => t.Lote != null && t.Lote.Granja.UsuarioId == userId);
+                        break;
+
+                    case "Financeiro":
+                        var produtorIds = await _context.FinanceiroProdutor
+                            .Where(fp => fp.FinanceiroId == userId)
+                            .Select(fp => fp.ProdutorId)
+                            .ToListAsync();
+
+                        if (!produtorIds.Any())
+                        {
+                            _logger.LogWarning("Usuário financeiro {UserId} não possui produtores associados", userId);
+                            transacoesDeLotesQuery = transacoesDeLotesQuery.Where(t => false);
+                        }
+                        else
+                        {
+                            transacoesDeLotesQuery = transacoesDeLotesQuery
+                                .Where(t => t.Lote != null && produtorIds.Contains(t.Lote.Granja.UsuarioId));
+                        }
+                        break;
+
+                    case "Administrador":
+                        // Administrador pode ver tudo, não precisa filtrar
+                        break;
+
+                    default:
+                        _logger.LogWarning("Role não reconhecida: {UserRole}", userRole);
+                        throw new UnauthorizedAccessException("Permissão insuficiente para acessar relatórios.");
+                }
+
+                // Filtro por granja se especificado
+                if (granjaId.HasValue && granjaId.Value > 0)
+                {
+                    // Verificar se a granja existe e se o usuário tem acesso
+                    var granja = await _context.Granjas
+                        .FirstOrDefaultAsync(g => g.Id == granjaId.Value);
+
+                    if (granja == null)
+                    {
+                        throw new ArgumentException("Granja não encontrada.");
+                    }
+
+                    // Verificar permissão na granja específica
+                    if (userRole == "Produtor" && granja.UsuarioId != userId)
+                    {
+                        throw new UnauthorizedAccessException("Você não tem permissão para acessar dados desta granja.");
+                    }
+
+                    transacoesDeLotesQuery = transacoesDeLotesQuery
+                        .Where(t => t.Lote != null && t.Lote.GranjaId == granjaId.Value);
+                }
+
+                // Query para transações gerais (sem lote)
+                var transacoesGeraisQuery = _context.TransacoesFinanceiras
+                    .Where(t => t.LoteId == null &&
+                                t.Data.Date >= dataInicio.Date &&
+                                t.Data.Date <= dataFim.Date);
+
+                // Transações gerais são visíveis apenas para o criador ou Admin
+                if (userRole != "Administrador")
+                {
+                    transacoesGeraisQuery = transacoesGeraisQuery.Where(t => t.UsuarioId == userId);
+                }
+
+                // Executar queries com includes necessários
+                var transacoesDeLotes = await transacoesDeLotesQuery
+                    .Include(t => t.Lote)
+                        .ThenInclude(l => l.Granja)
+                    .Include(t => t.Usuario)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                var transacoesGerais = await transacoesGeraisQuery
+                    .Include(t => t.Usuario)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                // Combinar e ordenar resultados
+                var transacoesFinais = transacoesGerais
+                    .Concat(transacoesDeLotes)
+                    .OrderByDescending(t => t.Data)
+                    .ToList();
+
+                // Calcular totais
+                var totalEntradas = transacoesFinais
+                    .Where(t => string.Equals(t.Tipo, "Entrada", StringComparison.OrdinalIgnoreCase))
+                    .Sum(t => t.Valor);
+
+                var totalSaidas = transacoesFinais
+                    .Where(t => string.Equals(t.Tipo, "Saida", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(t.Tipo, "Saída", StringComparison.OrdinalIgnoreCase))
+                    .Sum(t => t.Valor);
+
+                var resultado = new RelatorioFinanceiroDto
+                {
+                    TotalEntradas = totalEntradas,
+                    TotalSaidas = totalSaidas,
+                    Saldo = totalEntradas - totalSaidas,
+                    Transacoes = transacoesFinais
+                };
+
+                _logger.LogInformation("Relatório financeiro gerado com sucesso. Total transações: {Count}, Total entradas: {TotalEntradas}, Total saídas: {TotalSaidas}",
+                    transacoesFinais.Count, totalEntradas, totalSaidas);
+
+                return resultado;
             }
-
-            if (granjaId.HasValue)
+            catch (Exception ex)
             {
-                transacoesDeLotesQuery = transacoesDeLotesQuery.Where(t => t.Lote.GranjaId == granjaId.Value);
+                _logger.LogError(ex, "Erro ao gerar relatório financeiro. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
+                throw;
             }
-
-            // Query para transações gerais (sem lote), visíveis apenas para o criador ou Admin
-            var transacoesGeraisQuery = _context.TransacoesFinanceiras
-                .Where(t => t.LoteId == null && t.Data.Date >= dataInicio.Date && t.Data.Date <= dataFim.Date);
-
-            if (userRole != "Administrador")
-            {
-                transacoesGeraisQuery = transacoesGeraisQuery.Where(t => t.UsuarioId == userId);
-            }
-
-            // Executa as queries e junta os resultados
-            var transacoesDeLotes = await transacoesDeLotesQuery
-                .Include(t => t.Lote.Granja)
-                .Include(t => t.Usuario)
-                .ToListAsync();
-
-            var transacoesGerais = await transacoesGeraisQuery
-                .Include(t => t.Usuario)
-                .ToListAsync();
-
-            var transacoesFinais = transacoesGerais.Concat(transacoesDeLotes).OrderByDescending(t => t.Data).ToList();
-
-            var totalEntradas = transacoesFinais.Where(t => t.Tipo == "Entrada").Sum(t => t.Valor);
-            var totalSaidas = transacoesFinais.Where(t => t.Tipo == "Saida").Sum(t => t.Valor);
-
-            return new RelatorioFinanceiroDto
-            {
-                TotalEntradas = totalEntradas,
-                TotalSaidas = totalSaidas,
-                Saldo = totalEntradas - totalSaidas,
-                Transacoes = transacoesFinais
-            };
         }
 
         public async Task<RelatorioProducaoDto> GetRelatorioProducaoAsync(DateTime dataInicio, DateTime dataFim, int? granjaId)
         {
-            var (userId, userRole) = GetCurrentUser();
-            IQueryable<Lote> query = _context.Lotes
-                .Include(l => l.Granja)
-                .Where(l => l.DataEntrada.Date >= dataInicio.Date && l.DataEntrada.Date <= dataFim.Date);
+            try
+            {
+                _logger.LogInformation("Iniciando geração de relatório de produção. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
 
-            if (userRole == "Produtor")
-            {
-                query = query.Where(l => l.Granja.UsuarioId == userId);
-            }
-            else if (userRole == "Financeiro")
-            {
-                var produtorIds = await _context.FinanceiroProdutor.Where(fp => fp.FinanceiroId == userId).Select(fp => fp.ProdutorId).ToListAsync();
-                if (!produtorIds.Any()) return new RelatorioProducaoDto { Lotes = new List<Lote>() };
-                query = query.Where(l => produtorIds.Contains(l.Granja.UsuarioId));
-            }
+                // Validação de datas
+                if (dataInicio > dataFim)
+                {
+                    throw new ArgumentException("A data de início não pode ser posterior à data de fim.");
+                }
 
-            if (granjaId.HasValue)
-            {
-                query = query.Where(l => l.GranjaId == granjaId.Value);
-            }
+                var (userId, userRole) = GetCurrentUser();
 
-            var lotes = await query.ToListAsync();
-            return new RelatorioProducaoDto
+                // Query base para lotes
+                IQueryable<Lote> query = _context.Lotes
+                    .Include(l => l.Granja)
+                    .Where(l => l.DataEntrada.Date >= dataInicio.Date &&
+                                l.DataEntrada.Date <= dataFim.Date);
+
+                // Aplicar filtros de permissão
+                switch (userRole)
+                {
+                    case "Produtor":
+                        query = query.Where(l => l.Granja.UsuarioId == userId);
+                        break;
+
+                    case "Financeiro":
+                        var produtorIds = await _context.FinanceiroProdutor
+                            .Where(fp => fp.FinanceiroId == userId)
+                            .Select(fp => fp.ProdutorId)
+                            .ToListAsync();
+
+                        if (!produtorIds.Any())
+                        {
+                            _logger.LogWarning("Usuário financeiro {UserId} não possui produtores associados", userId);
+                            return new RelatorioProducaoDto
+                            {
+                                TotalLotes = 0,
+                                TotalAvesInicial = 0,
+                                Lotes = new List<Lote>()
+                            };
+                        }
+
+                        query = query.Where(l => produtorIds.Contains(l.Granja.UsuarioId));
+                        break;
+
+                    case "Administrador":
+                        // Administrador pode ver tudo
+                        break;
+
+                    default:
+                        _logger.LogWarning("Role não reconhecida: {UserRole}", userRole);
+                        throw new UnauthorizedAccessException("Permissão insuficiente para acessar relatórios.");
+                }
+
+                // Filtro por granja se especificado
+                if (granjaId.HasValue && granjaId.Value > 0)
+                {
+                    // Verificar se a granja existe e se o usuário tem acesso
+                    var granja = await _context.Granjas
+                        .FirstOrDefaultAsync(g => g.Id == granjaId.Value);
+
+                    if (granja == null)
+                    {
+                        throw new ArgumentException("Granja não encontrada.");
+                    }
+
+                    // Verificar permissão na granja específica
+                    if (userRole == "Produtor" && granja.UsuarioId != userId)
+                    {
+                        throw new UnauthorizedAccessException("Você não tem permissão para acessar dados desta granja.");
+                    }
+
+                    query = query.Where(l => l.GranjaId == granjaId.Value);
+                }
+
+                // Executar query
+                var lotes = await query
+                    .AsNoTracking()
+                    .OrderByDescending(l => l.DataEntrada)
+                    .ToListAsync();
+
+                var resultado = new RelatorioProducaoDto
+                {
+                    TotalLotes = lotes.Count,
+                    TotalAvesInicial = lotes.Sum(l => l.QuantidadeAvesInicial),
+                    Lotes = lotes
+                };
+
+                _logger.LogInformation("Relatório de produção gerado com sucesso. Total lotes: {Count}, Total aves: {TotalAves}",
+                    lotes.Count, resultado.TotalAvesInicial);
+
+                return resultado;
+            }
+            catch (Exception ex)
             {
-                TotalLotes = lotes.Count,
-                TotalAvesInicial = lotes.Sum(l => l.QuantidadeAvesInicial),
-                Lotes = lotes
-            };
+                _logger.LogError(ex, "Erro ao gerar relatório de produção. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
+                throw;
+            }
         }
     }
 }

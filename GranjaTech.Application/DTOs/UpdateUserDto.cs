@@ -7,6 +7,6 @@ namespace GranjaTech.Application.DTOs
         public string Nome { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public int PerfilId { get; set; }
-        public List<int>? ProdutorIds { get; set; } // Adicionado para a edição
+        public List<int>? ProdutorIds { get; set; }
     }
 }

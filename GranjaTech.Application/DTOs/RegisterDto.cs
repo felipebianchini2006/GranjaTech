@@ -8,6 +8,6 @@ namespace GranjaTech.Application.DTOs
         public string Email { get; set; } = string.Empty;
         public string Senha { get; set; } = string.Empty;
         public int PerfilId { get; set; }
-        public List<int>? ProdutorIds { get; set; } // Alterado de 'ProdutorOwnerId'
+        public List<int>? ProdutorIds { get; set; }
     }
 }

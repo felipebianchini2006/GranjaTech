@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable'; // CORREÇÃO: Importar o autoTable desta forma
 import * as XLSX from 'xlsx';
 
 import { 
     Typography, Box, Paper, Grid, TextField, Button, Select, 
     MenuItem, FormControl, InputLabel, CircularProgress,
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    Alert
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 
@@ -21,13 +22,15 @@ function RelatoriosPage() {
     const [granjas, setGranjas] = useState([]);
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const fetchGranjas = useCallback(async () => {
         try {
             const res = await apiService.getGranjas();
-            setGranjas(res.data);
+            setGranjas(res.data || []);
         } catch (error) {
             console.error("Erro ao buscar granjas:", error);
+            setError("Erro ao carregar granjas");
         }
     }, []);
 
@@ -37,28 +40,65 @@ function RelatoriosPage() {
 
     const handleFilterChange = (e) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
+        setError('');
     };
 
     const handleGenerateReport = async () => {
         if (!filters.dataInicio || !filters.dataFim) {
-            alert("Por favor, selecione a data de início e a data de fim.");
+            setError("Por favor, selecione a data de início e a data de fim.");
             return;
         }
+
+        const dataInicio = new Date(filters.dataInicio);
+        const dataFim = new Date(filters.dataFim);
+        
+        if (dataInicio > dataFim) {
+            setError("A data de início não pode ser posterior à data de fim.");
+            return;
+        }
+
+        const diasDiferenca = Math.ceil((dataFim - dataInicio) / (1000 * 60 * 60 * 24));
+        if (diasDiferenca > 365) {
+            setError("O período do relatório não pode exceder 365 dias.");
+            return;
+        }
+
         setLoading(true);
         setReportData(null);
+        setError('');
+        
         try {
             const params = {
                 dataInicio: filters.dataInicio,
-                dataFim: filters.dataFim,
-                granjaId: filters.granjaId || null
+                dataFim: filters.dataFim
             };
+            
+            if (filters.granjaId && filters.granjaId !== '') {
+                params.granjaId = parseInt(filters.granjaId);
+            }
+
             const response = reportType === 'financeiro'
                 ? await apiService.getRelatorioFinanceiro(params)
                 : await apiService.getRelatorioProducao(params);
-            setReportData(response.data);
+
+            if (response && response.data) {
+                setReportData(response.data);
+                const hasData = reportType === 'financeiro' 
+                    ? response.data.transacoes && response.data.transacoes.length > 0
+                    : response.data.lotes && response.data.lotes.length > 0;
+                
+                if (!hasData) {
+                    setError("Nenhum dado encontrado para o período selecionado.");
+                }
+            } else {
+                setError("Resposta inválida do servidor.");
+            }
         } catch (error) {
-            console.error("Erro ao gerar relatório:", error);
-            alert("Falha ao gerar relatório.");
+            let errorMessage = "Falha ao gerar relatório.";
+            if (error.response) {
+                errorMessage = error.response.data?.message || `Erro do servidor: ${error.response.status}`;
+            }
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -68,70 +108,150 @@ function RelatoriosPage() {
         if (!reportData) return;
         const dataToExport = reportType === 'financeiro' ? reportData.transacoes : reportData.lotes;
         if (dataToExport.length === 0) {
-            alert("Não há dados para exportar.");
+            setError("Não há dados para exportar.");
             return;
         }
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio");
-        XLSX.writeFile(workbook, `Relatorio_${reportType}_${new Date().toLocaleDateString('pt-BR')}.xlsx`);
+        XLSX.writeFile(workbook, `Relatorio_${reportType}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`);
     };
 
     const exportToPdf = () => {
-        if (!reportData) return;
-        const dataToExport = reportType === 'financeiro' ? reportData.transacoes : reportData.lotes;
-        if (dataToExport.length === 0) {
-            alert("Não há dados para exportar.");
-            return;
-        }
-        const doc = new jsPDF();
-        doc.text(`Relatório ${reportType === 'financeiro' ? 'Financeiro' : 'de Produção'}`, 14, 16);
-        
-        const head = reportType === 'financeiro' 
-            ? [['Data', 'Descrição', 'Tipo', 'Valor', 'Lote', 'Registado Por']]
-            : [['Código', 'Identificador', 'Aves', 'Data Entrada', 'Data Saída']];
-            
-        const body = reportType === 'financeiro'
-            ? dataToExport.map(t => [new Date(t.data).toLocaleDateString('pt-BR'), t.descricao, t.tipo, t.valor.toFixed(2), t.lote?.identificador || '-', t.usuario?.nome || '-'])
-            : dataToExport.map(l => [l.codigo, l.identificador, l.quantidadeAvesInicial, new Date(l.dataEntrada).toLocaleDateString('pt-BR'), l.dataSaida ? new Date(l.dataSaida).toLocaleDateString('pt-BR') : '-']);
+        try {
+            if (!reportData) {
+                setError("Nenhum dado disponível para exportação.");
+                return;
+            }
 
-        doc.autoTable({ head, body, startY: 25 });
-        doc.save(`Relatorio_${reportType}_${new Date().toLocaleDateString('pt-BR')}.pdf`);
+            const dataToExport = reportType === 'financeiro' 
+                ? reportData.transacoes || [] 
+                : reportData.lotes || [];
+                
+            if (dataToExport.length === 0) {
+                setError("Não há dados para exportar.");
+                return;
+            }
+
+            const doc = new jsPDF();
+            const title = `Relatório ${reportType === 'financeiro' ? 'Financeiro' : 'de Produção'}`;
+            doc.text(title, 14, 16);
+            
+            const head = reportType === 'financeiro' 
+                ? [['Data', 'Descrição', 'Tipo', 'Valor', 'Lote', 'Registado Por']]
+                : [['Código', 'Identificador', 'Aves', 'Data Entrada', 'Data Saída']];
+                
+            const body = reportType === 'financeiro'
+                ? dataToExport.map(t => [
+                    new Date(t.data).toLocaleDateString('pt-BR'), 
+                    t.descricao || '', 
+                    t.tipo || '', 
+                    `R$ ${(t.valor || 0).toFixed(2)}`, 
+                    t.lote?.identificador || '-', 
+                    t.usuario?.nome || '-'
+                  ])
+                : dataToExport.map(l => [
+                    l.codigo || '', 
+                    l.identificador || '', 
+                    l.quantidadeAvesInicial || 0, 
+                    new Date(l.dataEntrada).toLocaleDateString('pt-BR'), 
+                    l.dataSaida ? new Date(l.dataSaida).toLocaleDateString('pt-BR') : '-'
+                  ]);
+
+            // CORREÇÃO: Usar a função autoTable importada
+            autoTable(doc, { head, body, startY: 25 });
+            
+            const fileName = `Relatorio_${reportType}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+            doc.save(fileName);
+            
+        } catch (error) {
+            console.error("Erro ao exportar para PDF:", error);
+            setError("Erro ao exportar para PDF.");
+        }
     };
 
     return (
         <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom>Geração de Relatórios</Typography>
             
+            {error && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+                    {error}
+                </Alert>
+            )}
+            
             <Paper sx={{ p: 2, mb: 3 }}>
                 <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={3}>
                         <FormControl fullWidth>
                             <InputLabel>Tipo de Relatório</InputLabel>
-                            <Select value={reportType} onChange={(e) => setReportType(e.target.value)}>
+                            <Select 
+                                value={reportType} 
+                                onChange={(e) => setReportType(e.target.value)}
+                                label="Tipo de Relatório"
+                            >
                                 <MenuItem value="financeiro">Financeiro</MenuItem>
                                 <MenuItem value="producao">Produção</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <TextField name="dataInicio" label="Data de Início" type="date" fullWidth InputLabelProps={{ shrink: true }} value={filters.dataInicio} onChange={handleFilterChange} />
+                        <TextField 
+                            name="dataInicio" 
+                            label="Data de Início" 
+                            type="date" 
+                            fullWidth 
+                            InputLabelProps={{ shrink: true }} 
+                            value={filters.dataInicio} 
+                            onChange={handleFilterChange}
+                            required
+                        />
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <TextField name="dataFim" label="Data de Fim" type="date" fullWidth InputLabelProps={{ shrink: true }} value={filters.dataFim} onChange={handleFilterChange} />
+                        <TextField 
+                            name="dataFim" 
+                            label="Data de Fim" 
+                            type="date" 
+                            fullWidth 
+                            InputLabelProps={{ shrink: true }} 
+                            value={filters.dataFim} 
+                            onChange={handleFilterChange}
+                            required
+                        />
                     </Grid>
                     <Grid item xs={12} sm={3}>
                         <FormControl fullWidth>
                             <InputLabel>Granja (Opcional)</InputLabel>
-                            <Select name="granjaId" value={filters.granjaId} onChange={handleFilterChange}>
+                            <Select 
+                                name="granjaId" 
+                                value={filters.granjaId} 
+                                onChange={handleFilterChange}
+                                label="Granja (Opcional)"
+                            >
                                 <MenuItem value="">Todas</MenuItem>
-                                {granjas.map(g => <MenuItem key={g.id} value={g.id}>{g.nome}</MenuItem>)}
+                                {granjas.map(g => (
+                                    <MenuItem key={g.id} value={g.id}>
+                                        {g.nome}
+                                    </MenuItem>
+                                ))}
                             </Select>
                         </FormControl>
                     </Grid>
                     <Grid item xs={12}>
-                        <Button variant="contained" onClick={handleGenerateReport} disabled={loading}>
-                            {loading ? <CircularProgress size={24} /> : "Gerar Relatório"}
+                        <Button 
+                            variant="contained" 
+                            onClick={handleGenerateReport} 
+                            disabled={loading}
+                            size="large"
+                        >
+                            {loading ? (
+                                <>
+                                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                                    Gerando...
+                                </>
+                            ) : (
+                                "Gerar Relatório"
+                            )}
                         </Button>
                     </Grid>
                 </Grid>
@@ -140,16 +260,70 @@ function RelatoriosPage() {
             {reportData && (
                 <Paper sx={{ p: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h6">Resultados</Typography>
+                        <Typography variant="h6">
+                            Resultados
+                            {reportType === 'financeiro' && reportData.transacoes && (
+                                <Typography variant="body2" color="textSecondary">
+                                    Total: {reportData.transacoes.length} transações
+                                </Typography>
+                            )}
+                            {reportType === 'producao' && reportData.lotes && (
+                                <Typography variant="body2" color="textSecondary">
+                                    Total: {reportData.lotes.length} lotes
+                                </Typography>
+                            )}
+                        </Typography>
                         <Box>
-                            <Button startIcon={<DownloadIcon />} onClick={exportToExcel} sx={{ mr: 1 }}>Excel</Button>
-                            <Button startIcon={<DownloadIcon />} onClick={exportToPdf}>PDF</Button>
+                            <Button 
+                                startIcon={<DownloadIcon />} 
+                                onClick={exportToExcel} 
+                                sx={{ mr: 1 }}
+                                disabled={!reportData}
+                            >
+                                Excel
+                            </Button>
+                            <Button 
+                                startIcon={<DownloadIcon />} 
+                                onClick={exportToPdf}
+                                disabled={!reportData}
+                            >
+                                PDF
+                            </Button>
                         </Box>
                     </Box>
+
+                    {/* Resumo Financeiro */}
+                    {reportType === 'financeiro' && reportData && (
+                        <Box sx={{ mb: 2, p: 2, backgroundColor: 'grey.100', borderRadius: 1 }}>
+                            <Grid container spacing={2}>
+                                <Grid item xs={4}>
+                                    <Typography variant="body2" color="textSecondary">Total Entradas</Typography>
+                                    <Typography variant="h6" color="success.main">
+                                        {(reportData.totalEntradas || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography variant="body2" color="textSecondary">Total Saídas</Typography>
+                                    <Typography variant="h6" color="error.main">
+                                        {(reportData.totalSaidas || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={4}>
+                                    <Typography variant="body2" color="textSecondary">Saldo</Typography>
+                                    <Typography 
+                                        variant="h6" 
+                                        color={reportData.saldo >= 0 ? 'success.main' : 'error.main'}
+                                    >
+                                        {(reportData.saldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        </Box>
+                    )}
                     
                     {reportType === 'financeiro' ? (
-                        <TableContainer>
-                            <Table>
+                        <TableContainer sx={{ maxHeight: 600 }}>
+                            <Table stickyHeader>
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Data</TableCell>
@@ -161,12 +335,29 @@ function RelatoriosPage() {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {reportData.transacoes.map(t => (
+                                    {(reportData.transacoes || []).map(t => (
                                         <TableRow key={t.id}>
-                                            <TableCell>{new Date(t.data).toLocaleDateString('pt-BR')}</TableCell>
-                                            <TableCell>{t.descricao}</TableCell>
-                                            <TableCell>{t.tipo}</TableCell>
-                                            <TableCell align="right">{t.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                                            <TableCell>
+                                                {new Date(t.data).toLocaleDateString('pt-BR')}
+                                            </TableCell>
+                                            <TableCell>{t.descricao || '-'}</TableCell>
+                                            <TableCell>
+                                                <Box 
+                                                    sx={{ 
+                                                        px: 1, 
+                                                        py: 0.5, 
+                                                        borderRadius: 1,
+                                                        backgroundColor: t.tipo === 'Entrada' ? 'success.light' : 'error.light',
+                                                        color: t.tipo === 'Entrada' ? 'success.dark' : 'error.dark',
+                                                        display: 'inline-block'
+                                                    }}
+                                                >
+                                                    {t.tipo}
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                {(t.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                            </TableCell>
                                             <TableCell>{t.lote?.identificador || '-'}</TableCell>
                                             <TableCell>{t.usuario?.nome || '-'}</TableCell>
                                         </TableRow>
@@ -175,30 +366,51 @@ function RelatoriosPage() {
                             </Table>
                         </TableContainer>
                     ) : (
-                        <TableContainer>
-                            <Table>
+                        <TableContainer sx={{ maxHeight: 600 }}>
+                            <Table stickyHeader>
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Código</TableCell>
                                         <TableCell>Identificador</TableCell>
-                                        <TableCell>Aves Iniciais</TableCell>
+                                        <TableCell align="right">Aves Iniciais</TableCell>
                                         <TableCell>Data Entrada</TableCell>
                                         <TableCell>Data Saída</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {reportData.lotes.map(l => (
+                                    {(reportData.lotes || []).map(l => (
                                         <TableRow key={l.id}>
-                                            <TableCell>{l.codigo}</TableCell>
-                                            <TableCell>{l.identificador}</TableCell>
-                                            <TableCell>{l.quantidadeAvesInicial}</TableCell>
-                                            <TableCell>{new Date(l.dataEntrada).toLocaleDateString('pt-BR')}</TableCell>
-                                            <TableCell>{l.dataSaida ? new Date(l.dataSaida).toLocaleDateString('pt-BR') : '-'}</TableCell>
+                                            <TableCell>{l.codigo || '-'}</TableCell>
+                                            <TableCell>{l.identificador || '-'}</TableCell>
+                                            <TableCell align="right">{l.quantidadeAvesInicial || 0}</TableCell>
+                                            <TableCell>
+                                                {new Date(l.dataEntrada).toLocaleDateString('pt-BR')}
+                                            </TableCell>
+                                            <TableCell>
+                                                {l.dataSaida ? new Date(l.dataSaida).toLocaleDateString('pt-BR') : 'Em andamento'}
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
                         </TableContainer>
+                    )}
+
+                    {/* Mensagem quando não há dados */}
+                    {reportType === 'financeiro' && (!reportData.transacoes || reportData.transacoes.length === 0) && (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <Typography variant="body1" color="textSecondary">
+                                Nenhuma transação encontrada para o período selecionado.
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {reportType === 'producao' && (!reportData.lotes || reportData.lotes.length === 0) && (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                            <Typography variant="body1" color="textSecondary">
+                                Nenhum lote encontrado para o período selecionado.
+                            </Typography>
+                        </Box>
                     )}
                 </Paper>
             )}
