@@ -1,4 +1,4 @@
-﻿using GranjaTech.Application.Services.Interfaces;
+using GranjaTech.Application.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -22,6 +22,13 @@ namespace GranjaTech.Api.Controllers
             _logger = logger;
         }
 
+        [HttpGet("health")]
+        [AllowAnonymous]
+        public IActionResult Health()
+        {
+            return Ok(new { status = "ok", service = "relatorios" });
+        }
+
         [HttpGet("financeiro")]
         public async Task<IActionResult> GetRelatorioFinanceiro(
             [FromQuery, Required] DateTime dataInicio,
@@ -37,6 +44,12 @@ namespace GranjaTech.Api.Controllers
                 if (dataInicioUtc > dataFimUtc)
                 {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
+                }
+
+                // Validação adicional no servidor para evitar períodos muito grandes (proteção de performance)
+                if ((dataFimUtc - dataInicioUtc).TotalDays > 365)
+                {
+                    return BadRequest(new { message = "O período do relatório não pode exceder 365 dias." });
                 }
 
                 var relatorio = await _relatorioService.GetRelatorioFinanceiroAsync(dataInicioUtc, dataFimUtc, granjaId);
@@ -64,6 +77,12 @@ namespace GranjaTech.Api.Controllers
                 if (dataInicioUtc > dataFimUtc)
                 {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
+                }
+
+                // Validação adicional no servidor para evitar períodos muito grandes (proteção de performance)
+                if ((dataFimUtc - dataInicioUtc).TotalDays > 365)
+                {
+                    return BadRequest(new { message = "O período do relatório não pode exceder 365 dias." });
                 }
 
                 var relatorio = await _relatorioService.GetRelatorioProducaoAsync(dataInicioUtc, dataFimUtc, granjaId);

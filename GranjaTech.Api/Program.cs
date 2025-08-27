@@ -10,7 +10,7 @@ using System.Text.Json.Serialization; // Adicione este using
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Início da Secção de Configuração de Serviços ---
+// --- Inï¿½cio da Secï¿½ï¿½o de Configuraï¿½ï¿½o de Serviï¿½os ---
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -24,7 +24,7 @@ builder.Services.AddCors(options =>
                       });
 });
 
-// A CORREÇÃO ESTÁ AQUI: Adicionamos a configuração para o serializador JSON
+// A CORREï¿½ï¿½O ESTï¿½ AQUI: Adicionamos a configuraï¿½ï¿½o para o serializador JSON
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -36,7 +36,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Registo dos Serviços
+// Registo dos Serviï¿½os
 builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -75,11 +75,28 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityRequirement(new OpenApiSecurityRequirement { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, new string[] { } } });
 });
 
-// --- Fim da Secção de Configuração de Serviços ---
+// --- Fim da Secï¿½ï¿½o de Configuraï¿½ï¿½o de Serviï¿½os ---
 
 var app = builder.Build();
 
-// --- Início da Secção de Configuração do Pipeline HTTP ---
+// --- Inï¿½cio da Secï¿½ï¿½o de Configuraï¿½ï¿½o do Pipeline HTTP ---
+
+// Middleware global simples para captura de exceÃ§Ãµes nÃ£o tratadas
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GlobalException");
+        logger.LogError(ex, "ExceÃ§Ã£o nÃ£o tratada no pipeline HTTP");
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { message = "Erro interno do servidor" });
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -97,6 +114,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// --- Fim da Secção de Configuração do Pipeline HTTP ---
+// --- Fim da Secï¿½ï¿½o de Configuraï¿½ï¿½o do Pipeline HTTP ---
 
 app.Run();
