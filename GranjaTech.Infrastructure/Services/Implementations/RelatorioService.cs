@@ -162,24 +162,33 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                 }
 
                 // Executar queries com includes necessários
+                _logger.LogDebug("Executando query de transações de lotes...");
                 var transacoesDeLotes = await transacoesDeLotesQuery
                     .Include(t => t.Lote)
                         .ThenInclude(l => l.Granja)
                     .Include(t => t.Usuario)
                     .AsNoTracking()
+                    .Take(1000) // Limitar resultados para evitar problemas de memória
                     .ToListAsync();
 
+                _logger.LogDebug("Executando query de transações gerais...");
                 var transacoesGerais = await transacoesGeraisQuery
                     .Include(t => t.Usuario)
                     .AsNoTracking()
+                    .Take(1000) // Limitar resultados para evitar problemas de memória
                     .ToListAsync();
 
+                _logger.LogDebug("Queries executadas. Transações de lotes: {LotesCount}, Transações gerais: {GeraisCount}", 
+                    transacoesDeLotes.Count, transacoesGerais.Count);
+
                 // Combinar e ordenar resultados
+                _logger.LogDebug("Combinando e ordenando resultados...");
                 var transacoesFinais = transacoesGerais
                     .Concat(transacoesDeLotes)
                     .OrderByDescending(t => t.Data)
                     .ToList();
 
+                _logger.LogDebug("Calculando totais...");
                 // Calcular totais
                 var totalEntradas = transacoesFinais
                     .Where(t => string.Equals(t.Tipo, "Entrada", StringComparison.OrdinalIgnoreCase))
@@ -190,6 +199,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                                 string.Equals(t.Tipo, "Saída", StringComparison.OrdinalIgnoreCase))
                     .Sum(t => t.Valor);
 
+                _logger.LogDebug("Criando resultado final...");
                 var resultado = new RelatorioFinanceiroDto
                 {
                     TotalEntradas = totalEntradas,
@@ -201,6 +211,8 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                 _logger.LogInformation("Relatório financeiro gerado com sucesso. Total transações: {Count}, Total entradas: {TotalEntradas}, Total saídas: {TotalSaidas}",
                     transacoesFinais.Count, totalEntradas, totalSaidas);
 
+                var transacoesCount = resultado.Transacoes?.Count() ?? 0;
+                _logger.LogInformation("Retornando resultado do relatório financeiro com {TransacoesCount} transações", transacoesCount);
                 return resultado;
             }
             catch (Exception ex)
@@ -293,6 +305,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                 var lotes = await query
                     .AsNoTracking()
                     .OrderByDescending(l => l.DataEntrada)
+                    .Take(1000) // Limitar resultados para evitar problemas de memória
                     .ToListAsync();
 
                 var resultado = new RelatorioProducaoDto
@@ -310,6 +323,78 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao gerar relatório de produção. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
+                throw;
+            }
+        }
+
+        public async Task<RelatorioFinanceiroSimplificadoDto> GetRelatorioFinanceiroSimplificadoAsync(DateTime dataInicio, DateTime dataFim, int? granjaId)
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando geração de relatório financeiro SIMPLIFICADO. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
+                    dataInicio, dataFim, granjaId);
+
+                var (userId, userRole) = GetCurrentUser();
+
+                // Query simplificada para transações
+                var query = _context.TransacoesFinanceiras
+                    .Where(t => t.Data.Date >= dataInicio.Date && t.Data.Date <= dataFim.Date);
+
+                // Aplicar filtros de permissão básicos
+                if (userRole == "Produtor")
+                {
+                    var granjaIds = await _context.Granjas
+                        .Where(g => g.UsuarioId == userId)
+                        .Select(g => g.Id)
+                        .ToListAsync();
+
+                    query = query.Where(t => t.LoteId == null || 
+                        _context.Lotes.Any(l => l.Id == t.LoteId && granjaIds.Contains(l.GranjaId)));
+                }
+
+                // Executar query simplificada com projeção direta
+                var transacoes = await query
+                    .Select(t => new TransacaoSimplificadaDto
+                    {
+                        Id = t.Id,
+                        Descricao = t.Descricao,
+                        Valor = t.Valor,
+                        Tipo = t.Tipo,
+                        Data = t.Data,
+                        LoteIdentificador = t.Lote != null ? t.Lote.Identificador : null,
+                        UsuarioNome = t.Usuario.Nome,
+                        GranjaNome = t.Lote != null ? t.Lote.Granja.Nome : null
+                    })
+                    .Take(1000)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                var totalEntradas = transacoes
+                    .Where(t => string.Equals(t.Tipo, "Entrada", StringComparison.OrdinalIgnoreCase))
+                    .Sum(t => t.Valor);
+
+                var totalSaidas = transacoes
+                    .Where(t => string.Equals(t.Tipo, "Saida", StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(t.Tipo, "Saída", StringComparison.OrdinalIgnoreCase))
+                    .Sum(t => t.Valor);
+
+                var resultado = new RelatorioFinanceiroSimplificadoDto
+                {
+                    TotalEntradas = totalEntradas,
+                    TotalSaidas = totalSaidas,
+                    Saldo = totalEntradas - totalSaidas,
+                    Transacoes = transacoes.OrderByDescending(t => t.Data).ToList()
+                };
+
+                _logger.LogInformation("Relatório financeiro SIMPLIFICADO gerado com sucesso. Total transações: {Count}",
+                    transacoes.Count);
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao gerar relatório financeiro SIMPLIFICADO. DataInicio: {DataInicio}, DataFim: {DataFim}, GranjaId: {GranjaId}",
                     dataInicio, dataFim, granjaId);
                 throw;
             }

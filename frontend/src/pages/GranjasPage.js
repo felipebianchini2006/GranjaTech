@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import apiService from '../services/apiService';
+import PageContainer from '../components/PageContainer';
+import LoadingSpinner from '../components/LoadingSpinner';
 import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Typography, Box, Button, Dialog, DialogActions, DialogContent,
-    DialogTitle, TextField, IconButton, Select, MenuItem, FormControl, InputLabel
+    DialogTitle, TextField, IconButton, Select, MenuItem, FormControl, InputLabel,
+    Card, CardContent, Chip, Alert
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { 
+    Edit as EditIcon,
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    Agriculture as AgricultureIcon,
+    LocationOn as LocationIcon,
+    Person as PersonIcon
+} from '@mui/icons-material';
 
 const initialFormState = { id: 0, nome: '', localizacao: '', usuarioId: null };
 
@@ -18,9 +27,13 @@ function GranjasPage() {
     const [open, setOpen] = useState(false);
     const [currentGranja, setCurrentGranja] = useState(initialFormState);
     const [isEditMode, setIsEditMode] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     const fetchData = useCallback(async () => {
         try {
+            setLoading(true);
+            setError('');
             const granjasRes = await apiService.getGranjas();
             setGranjas(granjasRes.data);
 
@@ -30,6 +43,9 @@ function GranjasPage() {
             }
         } catch (error) {
             console.error("Houve um erro ao buscar os dados:", error);
+            setError('Erro ao carregar as granjas. Tente novamente.');
+        } finally {
+            setLoading(false);
         }
     }, [user?.role]);
 
@@ -95,24 +111,75 @@ function GranjasPage() {
         }
     };
 
-    return (
-        <Box sx={{ margin: '20px', padding: '20px' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h4" component="h1">
-                    Gerenciamento de Granjas
-                </Typography>
-                {user?.role !== 'Financeiro' && (
-                    <Button variant="contained" onClick={() => handleClickOpen()}>
-                        Adicionar Nova Granja
-                    </Button>
-                )}
-            </Box>
+    if (loading) {
+        return <LoadingSpinner message="Carregando granjas..." />;
+    }
 
-            <Dialog open={open} onClose={handleClose}>
-                <DialogTitle>{isEditMode ? 'Editar Granja' : 'Cadastrar Nova Granja'}</DialogTitle>
-                <DialogContent>
-                    <TextField autoFocus margin="dense" required fullWidth name="nome" label="Nome da Granja" value={currentGranja.nome} onChange={handleInputChange} />
-                    <TextField margin="dense" fullWidth name="localizacao" label="Localização" value={currentGranja.localizacao || ''} onChange={handleInputChange} />
+    return (
+        <PageContainer
+            title="Granjas"
+            subtitle="Gerencie suas propriedades agropecuárias"
+            action={
+                user?.role !== 'Financeiro' && (
+                    <Button 
+                        variant="contained" 
+                        startIcon={<AddIcon />}
+                        onClick={() => handleClickOpen()}
+                        sx={{ 
+                            borderRadius: 2,
+                            px: 3,
+                            py: 1.5,
+                        }}
+                    >
+                        Nova Granja
+                    </Button>
+                )
+            }
+        >
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
+                    {error}
+                </Alert>
+            )}
+
+            <Dialog 
+                open={open} 
+                onClose={handleClose}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: 3 }
+                }}
+            >
+                <DialogTitle sx={{ pb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <AgricultureIcon color="primary" />
+                        <Typography variant="h6" component="div">
+                            {isEditMode ? 'Editar Granja' : 'Cadastrar Nova Granja'}
+                        </Typography>
+                    </Box>
+                </DialogTitle>
+                <DialogContent sx={{ pt: 2 }}>
+                    <TextField 
+                        autoFocus 
+                        margin="normal" 
+                        required 
+                        fullWidth 
+                        name="nome" 
+                        label="Nome da Granja" 
+                        value={currentGranja.nome} 
+                        onChange={handleInputChange}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField 
+                        margin="normal" 
+                        fullWidth 
+                        name="localizacao" 
+                        label="Localização" 
+                        value={currentGranja.localizacao || ''} 
+                        onChange={handleInputChange}
+                        sx={{ mb: 2 }}
+                    />
                     
                     {user?.role === 'Administrador' && (
                         <FormControl fullWidth margin="normal" required>
@@ -131,44 +198,114 @@ function GranjasPage() {
                         </FormControl>
                     )}
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleSubmit}>Salvar</Button>
+                <DialogActions sx={{ p: 3, pt: 2 }}>
+                    <Button onClick={handleClose} variant="outlined">
+                        Cancelar
+                    </Button>
+                    <Button onClick={handleSubmit} variant="contained">
+                        {isEditMode ? 'Atualizar' : 'Criar'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Código</TableCell>
-                            <TableCell>Nome</TableCell>
-                            <TableCell>Localização</TableCell>
-                            {/* COLUNA CONDICIONAL PARA O DONO */}
-                            {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>Dono (Produtor)</TableCell>}
-                            {user?.role !== 'Financeiro' && <TableCell align="right">Ações</TableCell>}
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {granjas.map((granja) => (
-                            <TableRow key={granja.id}>
-                                <TableCell>{granja.codigo}</TableCell>
-                                <TableCell>{granja.nome}</TableCell>
-                                <TableCell>{granja.localizacao}</TableCell>
-                                {/* CÉLULA CONDICIONAL PARA O DONO */}
-                                {(user?.role === 'Administrador' || user?.role === 'Financeiro') && <TableCell>{granja.usuario?.nome || 'N/A'}</TableCell>}
-                                {user?.role !== 'Financeiro' && (
-                                    <TableCell align="right">
-                                        <IconButton onClick={() => handleClickOpen(granja)}><EditIcon /></IconButton>
-                                        <IconButton onClick={() => handleDelete(granja.id)}><DeleteIcon /></IconButton>
-                                    </TableCell>
-                                )}
+            <Card>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 600 }}>Código</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>Nome</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}>Localização</TableCell>
+                                {(user?.role === 'Administrador' || user?.role === 'Financeiro') && 
+                                    <TableCell sx={{ fontWeight: 600 }}>Dono (Produtor)</TableCell>
+                                }
+                                {user?.role !== 'Financeiro' && 
+                                    <TableCell align="right" sx={{ fontWeight: 600 }}>Ações</TableCell>
+                                }
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        </Box>
+                        </TableHead>
+                        <TableBody>
+                            {granjas.length === 0 ? (
+                                <TableRow>
+                                    <TableCell 
+                                        colSpan={user?.role === 'Financeiro' ? 4 : 5} 
+                                        align="center" 
+                                        sx={{ py: 8 }}
+                                    >
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                                            <AgricultureIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
+                                            <Typography color="text.secondary">
+                                                Nenhuma granja encontrada
+                                            </Typography>
+                                        </Box>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                granjas.map((granja) => (
+                                    <TableRow 
+                                        key={granja.id}
+                                        sx={{ 
+                                            '&:hover': { backgroundColor: 'action.hover' },
+                                            transition: 'background-color 0.2s ease-in-out',
+                                        }}
+                                    >
+                                        <TableCell>
+                                            <Typography variant="body2" fontWeight={500}>
+                                                {granja.codigo}
+                                            </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                <AgricultureIcon color="primary" sx={{ fontSize: 20 }} />
+                                                <Typography fontWeight={500}>
+                                                    {granja.nome}
+                                                </Typography>
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <LocationIcon color="action" sx={{ fontSize: 16 }} />
+                                                <Typography variant="body2">
+                                                    {granja.localizacao || 'Não informado'}
+                                                </Typography>
+                                            </Box>
+                                        </TableCell>
+                                        {(user?.role === 'Administrador' || user?.role === 'Financeiro') && (
+                                            <TableCell>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <PersonIcon color="action" sx={{ fontSize: 16 }} />
+                                                    <Typography variant="body2">
+                                                        {granja.usuario?.nome || 'N/A'}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+                                        )}
+                                        {user?.role !== 'Financeiro' && (
+                                            <TableCell align="right">
+                                                <IconButton 
+                                                    onClick={() => handleClickOpen(granja)}
+                                                    size="small"
+                                                    sx={{ mr: 1 }}
+                                                >
+                                                    <EditIcon fontSize="small" />
+                                                </IconButton>
+                                                <IconButton 
+                                                    onClick={() => handleDelete(granja.id)}
+                                                    size="small"
+                                                    color="error"
+                                                >
+                                                    <DeleteIcon fontSize="small" />
+                                                </IconButton>
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Card>
+        </PageContainer>
     );
 }
 

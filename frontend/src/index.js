@@ -2,14 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
-import { AuthProvider } from './context/AuthContext'; // Importe o AuthProvider
+import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './components/NotificationContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    {/* Envolva o App com o AuthProvider */}
-    <AuthProvider>
-      <App />
-    </AuthProvider>
+    <NotificationProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </NotificationProvider>
   </React.StrictMode>
 );

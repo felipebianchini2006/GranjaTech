@@ -1,16 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable'; // CORREÇÃO: Importar o autoTable desta forma
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import PageContainer from '../components/PageContainer';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 import { 
     Typography, Box, Paper, Grid, TextField, Button, Select, 
     MenuItem, FormControl, InputLabel, CircularProgress,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Alert
+    Alert, Card, CardContent, Chip
 } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
+import {
+    Download as DownloadIcon,
+    Assessment as AssessmentIcon,
+    PictureAsPdf as PdfIcon,
+    TableChart as ExcelIcon,
+    FilterList as FilterIcon,
+    AttachMoney as MoneyIcon,
+    Agriculture as AgricultureIcon
+} from '@mui/icons-material';
 
 function RelatoriosPage() {
     const [reportType, setReportType] = useState('financeiro');
@@ -171,8 +181,10 @@ function RelatoriosPage() {
     };
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>Geração de Relatórios</Typography>
+        <PageContainer
+            title="Relatórios"
+            subtitle="Gere relatórios detalhados do sistema"
+        >
             
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -414,7 +426,7 @@ function RelatoriosPage() {
                     )}
                 </Paper>
             )}
-        </Box>
+        </PageContainer>
     );
 }
 

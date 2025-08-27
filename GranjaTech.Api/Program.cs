@@ -10,7 +10,7 @@ using System.Text.Json.Serialization; // Adicione este using
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Início da Secção de Configuração de Serviços ---
+// --- Inï¿½cio da Secï¿½ï¿½o de Configuraï¿½ï¿½o de Serviï¿½os ---
 
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 builder.Services.AddCors(options =>
@@ -24,10 +24,13 @@ builder.Services.AddCors(options =>
                       });
 });
 
-// A CORREÇÃO ESTÁ AQUI: Adicionamos a configuração para o serializador JSON
+// ConfiguraÃ§Ã£o otimizada do serializador JSON
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    options.JsonSerializerOptions.WriteIndented = false; // Reduzir tamanho da resposta
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    options.JsonSerializerOptions.MaxDepth = 64; // Limitar profundidade para evitar loops infinitos
 });
 
 builder.Services.AddHttpContextAccessor();
@@ -36,7 +39,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Registo dos Serviços
+// Registo dos Serviï¿½os
 builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -75,11 +78,46 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityRequirement(new OpenApiSecurityRequirement { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, new string[] { } } });
 });
 
-// --- Fim da Secção de Configuração de Serviços ---
+// --- Fim da Secï¿½ï¿½o de Configuraï¿½ï¿½o de Serviï¿½os ---
 
 var app = builder.Build();
 
-// --- Início da Secção de Configuração do Pipeline HTTP ---
+// --- Inï¿½cio da Secï¿½ï¿½o de Configuraï¿½ï¿½o do Pipeline HTTP ---
+
+// Middleware de logging de requisiÃ§Ãµes
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RequestTracking");
+    var requestId = Guid.NewGuid().ToString("N")[..8];
+    
+    logger.LogInformation("Iniciando requisiÃ§Ã£o {RequestId}: {Method} {Path}", requestId, context.Request.Method, context.Request.Path);
+    
+    try
+    {
+        await next();
+        logger.LogInformation("Finalizando requisiÃ§Ã£o {RequestId} com status {StatusCode}", requestId, context.Response.StatusCode);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "ExceÃ§Ã£o na requisiÃ§Ã£o {RequestId}: {Method} {Path}", requestId, context.Request.Method, context.Request.Path);
+        
+        // Verificar se a resposta jÃ¡ foi iniciada
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsJsonAsync(new { 
+                message = "Erro interno do servidor", 
+                requestId = requestId,
+                path = context.Request.Path.Value 
+            });
+        }
+        else
+        {
+            logger.LogWarning("NÃ£o foi possÃ­vel retornar erro JSON para requisiÃ§Ã£o {RequestId} pois a resposta jÃ¡ havia sido iniciada", requestId);
+        }
+    }
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -97,6 +135,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// --- Fim da Secção de Configuração do Pipeline HTTP ---
+// --- Fim da Secï¿½ï¿½o de Configuraï¿½ï¿½o do Pipeline HTTP ---
 
 app.Run();

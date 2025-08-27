@@ -8,5 +8,6 @@ namespace GranjaTech.Application.Services.Interfaces
     {
         Task<RelatorioFinanceiroDto> GetRelatorioFinanceiroAsync(DateTime dataInicio, DateTime dataFim, int? granjaId);
         Task<RelatorioProducaoDto> GetRelatorioProducaoAsync(DateTime dataInicio, DateTime dataFim, int? granjaId);
+        Task<RelatorioFinanceiroSimplificadoDto> GetRelatorioFinanceiroSimplificadoAsync(DateTime dataInicio, DateTime dataFim, int? granjaId);
     }
 }

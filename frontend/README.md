@@ -1,70 +1,225 @@
-# Getting Started with Create React App
+# GranjaTech Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Sistema moderno de gestão agropecuária desenvolvido em React.js com Material-UI.
 
-## Available Scripts
+## 🚀 Funcionalidades
 
-In the project directory, you can run:
+### ✅ Implementadas
+- **Dashboard Interativo**: Visão geral com KPIs e gráficos em tempo real
+- **Gestão de Granjas**: CRUD completo para propriedades agropecuárias
+- **Gestão de Lotes**: Controle de lotes de produção
+- **Sistema Financeiro**: Gestão de entradas e saídas
+- **Relatórios**: Geração de relatórios em PDF e Excel
+- **Gestão de Estoque**: Controle de produtos e insumos
+- **Monitoramento de Sensores**: Dashboard para sensores IoT
+- **Sistema de Usuários**: Gestão completa com diferentes perfis
+- **Auditoria**: Log de ações do sistema
+- **Perfil de Usuário**: Gestão de conta pessoal
 
-### `npm start`
+## 🎨 Melhorias Visuais Recentes
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Design System Moderno
+- **Tema Personalizado**: Paleta de cores profissional focada no agronegócio
+- **Tipografia**: Fonte Inter para melhor legibilidade
+- **Componentes**: Cards, botões e formulários redesenhados
+- **Espaçamento**: Sistema de grid responsivo otimizado
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Navegação Responsiva
+- **Sidebar Inteligente**: Menu lateral com ícones e categorização
+- **Mobile First**: Menu hambúrguer para dispositivos móveis
+- **Breadcrumbs**: Navegação contextual em todas as páginas
+- **Estado Ativo**: Indicadores visuais da página atual
 
-### `npm test`
+### Experiência do Usuário
+- **Loading States**: Spinners e feedbacks visuais
+- **Estados Vazios**: Mensagens e ícones para listas vazias
+- **Sistema de Notificações**: Toast messages para feedback
+- **Validação Visual**: Campos com validação em tempo real
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Componentes Visuais
+- **KPI Cards**: Cards animados com gradientes e ícones
+- **Tabelas Melhoradas**: Hover effects e tipografia aprimorada
+- **Formulários**: Campos com melhor espaçamento e validação
+- **Gráficos**: Charts responsivos com tooltips customizados
 
-### `npm run build`
+## 📱 Responsividade
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Breakpoints
+- **Mobile**: < 600px
+- **Tablet**: 600px - 960px
+- **Desktop**: > 960px
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Adaptações Móveis
+- Menu lateral colapsável
+- Grids que se adaptam ao tamanho da tela
+- Formulários otimizados para touch
+- Tabelas com scroll horizontal quando necessário
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🛠️ Tecnologias
 
-### `npm run eject`
+### Core
+- **React 19.1.1**: Framework principal
+- **Material-UI 7.3.1**: Biblioteca de componentes
+- **React Router 7.8.1**: Roteamento
+- **Axios 1.11.0**: Cliente HTTP
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Funcionalidades
+- **Recharts 3.1.2**: Gráficos e dashboards
+- **jsPDF 3.0.1**: Geração de PDFs
+- **jsPDF AutoTable 5.0.2**: Tabelas em PDF
+- **XLSX 0.18.5**: Exportação para Excel
+- **JWT Decode 4.0.0**: Autenticação
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Styling
+- **Emotion**: CSS-in-JS para Material-UI
+- **Google Fonts**: Fonte Inter
+- **CSS Grid/Flexbox**: Layout responsivo
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🚀 Como Executar
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Pré-requisitos
+- Node.js 16+ 
+- npm ou yarn
 
-## Learn More
+### Instalação
+```bash
+# Instalar dependências
+npm install
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# Executar em desenvolvimento
+npm start
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+# Build para produção
+npm run build
+```
 
-### Code Splitting
+### Configuração
+O frontend está configurado para se conectar ao backend em:
+- **Desenvolvimento**: `http://localhost:5099`
+- **Produção**: Configurar variável de ambiente
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## 📁 Estrutura do Projeto
 
-### Analyzing the Bundle Size
+```
+frontend/
+├── public/                 # Arquivos públicos
+├── src/
+│   ├── components/         # Componentes reutilizáveis
+│   │   ├── LoadingSpinner.js
+│   │   ├── PageContainer.js
+│   │   ├── ResponsiveNavigation.js
+│   │   ├── NotificationContext.js
+│   │   └── ProtectedRoute.js
+│   ├── context/           # Contextos React
+│   │   └── AuthContext.js
+│   ├── pages/             # Páginas da aplicação
+│   │   ├── DashboardPage.js
+│   │   ├── GranjasPage.js
+│   │   ├── LotesPage.js
+│   │   ├── FinanceiroPage.js
+│   │   ├── RelatoriosPage.js
+│   │   ├── EstoquePage.js
+│   │   ├── SensoresPage.js
+│   │   ├── UsuariosPage.js
+│   │   ├── AuditoriaPage.js
+│   │   ├── ProfilePage.js
+│   │   └── LoginPage.js
+│   ├── services/          # Serviços de API
+│   │   └── apiService.js
+│   ├── theme.js           # Tema customizado
+│   ├── App.js            # Componente principal
+│   ├── index.js          # Ponto de entrada
+│   └── index.css         # Estilos globais
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 🎯 Próximas Melhorias
 
-### Making a Progressive Web App
+### UX/UI
+- [ ] Dark mode
+- [ ] Animações de transição
+- [ ] Drag and drop
+- [ ] Upload de arquivos com preview
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### Funcionalidades
+- [ ] Notificações push
+- [ ] Modo offline
+- [ ] Busca avançada
+- [ ] Filtros salvos
 
-### Advanced Configuration
+### Performance
+- [ ] Lazy loading de páginas
+- [ ] Cache de dados
+- [ ] Service Worker
+- [ ] Bundle splitting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🔧 Configuração de Desenvolvimento
 
-### Deployment
+### VSCode Extensions Recomendadas
+- ES7+ React/Redux/React-Native snippets
+- Prettier - Code formatter
+- ESLint
+- Auto Rename Tag
+- Material Icon Theme
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### Scripts Disponíveis
+```bash
+npm start          # Servidor de desenvolvimento
+npm run build      # Build para produção
+npm test           # Executar testes
+npm run eject      # Ejetar configuração (não recomendado)
+```
 
-### `npm run build` fails to minify
+## 📝 Convenções
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Nomenclatura
+- **Componentes**: PascalCase (ex: `PageContainer`)
+- **Arquivos**: PascalCase para componentes, camelCase para utilitários
+- **Pastas**: camelCase
+- **Constantes**: UPPER_SNAKE_CASE
+
+### Estrutura de Componentes
+```jsx
+// Imports
+import React from 'react';
+import { Component } from '@mui/material';
+
+// Component
+function MyComponent({ prop1, prop2 }) {
+  // Hooks
+  // Event handlers
+  // Render
+  return (
+    <div>
+      {/* JSX */}
+    </div>
+  );
+}
+
+// Export
+export default MyComponent;
+```
+
+## 🌟 Características Técnicas
+
+### Design System
+- **Paleta de Cores**: Verde agropecuário com tons complementares
+- **Tipografia**: Inter 300-800, otimizada para legibilidade
+- **Spacing**: Sistema de 8px base
+- **Border Radius**: 8px-16px para componentes
+- **Sombras**: Sistema de elevação sutil
+
+### Acessibilidade
+- Contraste adequado (WCAG AA)
+- Navegação por teclado
+- Labels e descrições para screen readers
+- Focus indicators customizados
+
+### Performance
+- Bundle size otimizado
+- Tree shaking automático
+- Componentes lazy quando necessário
+- Imagens otimizadas
+
+---
+
+**Desenvolvido com ❤️ para o agronegócio brasileiro**
