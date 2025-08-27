@@ -3,6 +3,7 @@ using System;
 using GranjaTech.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace GranjaTech.Infrastructure.Migrations
 {
     [DbContext(typeof(GranjaTechDbContext))]
-    partial class GranjaTechDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250827200629_AviculturaExtensao")]
+    partial class AviculturaExtensao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

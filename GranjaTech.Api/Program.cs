@@ -49,6 +49,11 @@ builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<ISensorService, SensorService>();
 builder.Services.AddScoped<IRelatorioService, RelatorioService>();
+builder.Services.AddScoped<IAviculturaService, AviculturaService>();
+builder.Services.AddScoped<GranjaTech.Infrastructure.Services.Interfaces.ICacheService, GranjaTech.Infrastructure.Services.Implementations.MemoryCacheService>();
+
+// Adicionar Memory Cache
+builder.Services.AddMemoryCache();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -134,6 +139,29 @@ app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Seed de dados de avicultura em desenvolvimento
+if (app.Environment.IsDevelopment())
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<GranjaTechDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        
+        try
+        {
+            // Aplicar migrações pendentes
+            context.Database.Migrate();
+            
+            // Executar seed de dados de avicultura
+            GranjaTech.Infrastructure.Data.AviculturaSeedData.SeedAviculturaData(context, logger);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Erro durante a inicialização do banco de dados");
+        }
+    }
+}
 
 // --- Fim da Sec��o de Configura��o do Pipeline HTTP ---
 

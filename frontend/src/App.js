@@ -12,6 +12,10 @@ import DashboardPage from './pages/DashboardPage';
 import AuditoriaPage from './pages/AuditoriaPage';
 import ProfilePage from './pages/ProfilePage';
 import EstoquePage from './pages/EstoquePage';
+import AviculturaPage from './pages/AviculturaPage';
+import ConsumoPage from './pages/ConsumoPage';
+import PesagemPage from './pages/PesagemPage';
+import SanitarioPage from './pages/SanitarioPage';
 import SensoresPage from './pages/SensoresPage';
 import RelatoriosPage from './pages/RelatoriosPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,6 +42,10 @@ function App() {
           <Route path="/auditoria" element={<ProtectedRoute><AuditoriaPage /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/estoque" element={<ProtectedRoute><EstoquePage /></ProtectedRoute>} />
+          <Route path="/avicultura" element={<ProtectedRoute><AviculturaPage /></ProtectedRoute>} />
+          <Route path="/consumo" element={<ProtectedRoute><ConsumoPage /></ProtectedRoute>} />
+          <Route path="/pesagem" element={<ProtectedRoute><PesagemPage /></ProtectedRoute>} />
+          <Route path="/sanitario" element={<ProtectedRoute><SanitarioPage /></ProtectedRoute>} />
           <Route path="/sensores" element={<ProtectedRoute><SensoresPage /></ProtectedRoute>} />
           <Route path="/relatorios" element={<ProtectedRoute><RelatoriosPage /></ProtectedRoute>} />
 

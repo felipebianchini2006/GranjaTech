@@ -19,6 +19,15 @@ namespace GranjaTech.Infrastructure
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Sensor> Sensores { get; set; }
         public DbSet<LeituraSensor> LeiturasSensores { get; set; }
+        
+        // Novas entidades específicas de avicultura
+        public DbSet<ConsumoRacao> ConsumosRacao { get; set; }
+        public DbSet<ConsumoAgua> ConsumosAgua { get; set; }
+        public DbSet<PesagemSemanal> PesagensSemanais { get; set; }
+        public DbSet<EventoSanitario> EventosSanitarios { get; set; }
+        public DbSet<QualidadeAr> MedicoesQualidadeAr { get; set; }
+        public DbSet<RegistroMortalidade> RegistrosMortalidade { get; set; }
+        public DbSet<RegistroAbate> RegistrosAbate { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -76,6 +85,87 @@ namespace GranjaTech.Infrastructure
                 .WithMany(s => s.Leituras)
                 .HasForeignKey(l => l.SensorId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configurações das novas entidades
+            modelBuilder.Entity<ConsumoRacao>()
+                .HasOne(c => c.Lote)
+                .WithMany(l => l.ConsumosRacao)
+                .HasForeignKey(c => c.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ConsumoAgua>()
+                .HasOne(c => c.Lote)
+                .WithMany(l => l.ConsumosAgua)
+                .HasForeignKey(c => c.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PesagemSemanal>()
+                .HasOne(p => p.Lote)
+                .WithMany(l => l.PesagensSemanais)
+                .HasForeignKey(p => p.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EventoSanitario>()
+                .HasOne(e => e.Lote)
+                .WithMany(l => l.EventosSanitarios)
+                .HasForeignKey(e => e.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<QualidadeAr>()
+                .HasOne(q => q.Lote)
+                .WithMany(l => l.MedicoesQualidadeAr)
+                .HasForeignKey(q => q.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RegistroMortalidade>()
+                .HasOne(r => r.Lote)
+                .WithMany(l => l.RegistrosMortalidade)
+                .HasForeignKey(r => r.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RegistroAbate>()
+                .HasOne(r => r.Lote)
+                .WithMany(l => l.RegistrosAbate)
+                .HasForeignKey(r => r.LoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configurações de precisão decimal
+            modelBuilder.Entity<ConsumoRacao>()
+                .Property(c => c.QuantidadeKg)
+                .HasPrecision(10, 3);
+
+            modelBuilder.Entity<ConsumoAgua>()
+                .Property(c => c.QuantidadeLitros)
+                .HasPrecision(10, 3);
+
+            modelBuilder.Entity<PesagemSemanal>()
+                .Property(p => p.PesoMedioGramas)
+                .HasPrecision(8, 2);
+
+            modelBuilder.Entity<QualidadeAr>()
+                .Property(q => q.NH3_ppm)
+                .HasPrecision(6, 2);
+
+            modelBuilder.Entity<QualidadeAr>()
+                .Property(q => q.CO2_ppm)
+                .HasPrecision(8, 2);
+
+            modelBuilder.Entity<RegistroAbate>()
+                .Property(r => r.PesoVivoTotalKg)
+                .HasPrecision(10, 3);
+
+            // Índices para performance
+            modelBuilder.Entity<ConsumoRacao>()
+                .HasIndex(c => new { c.LoteId, c.Data });
+
+            modelBuilder.Entity<ConsumoAgua>()
+                .HasIndex(c => new { c.LoteId, c.Data });
+
+            modelBuilder.Entity<PesagemSemanal>()
+                .HasIndex(p => new { p.LoteId, p.SemanaVida });
+
+            modelBuilder.Entity<RegistroMortalidade>()
+                .HasIndex(r => new { r.LoteId, r.Data });
 
             // Seed de dados dos Perfis
             modelBuilder.Entity<Perfil>().HasData(
