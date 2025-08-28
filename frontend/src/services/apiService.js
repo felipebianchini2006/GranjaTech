@@ -73,6 +73,7 @@ const apiService = {
     // Funções de Autenticação e Utilizadores
     login: (credenciais) => apiClient.post('/auth/login', credenciais),
     registrar: (dadosDeRegisto) => apiClient.post('/auth/registrar', dadosDeRegisto),
+    createUser: (novoUsuario) => apiClient.post('/auth/registrar', novoUsuario),
     getUsers: () => apiClient.get('/auth/usuarios'),
     getUserById: (id) => apiClient.get(`/auth/usuarios/${id}`),
     updateUser: (id, userData) => apiClient.put(`/auth/usuarios/${id}`, userData),

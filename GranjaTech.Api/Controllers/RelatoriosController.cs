@@ -1,6 +1,8 @@
 ﻿using GranjaTech.Application.Services.Interfaces;
+using GranjaTech.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -14,11 +16,13 @@ namespace GranjaTech.Api.Controllers
     public class RelatoriosController : ControllerBase
     {
         private readonly IRelatorioService _relatorioService;
+        private readonly GranjaTechDbContext _context;
         private readonly ILogger<RelatoriosController> _logger;
 
-        public RelatoriosController(IRelatorioService relatorioService, ILogger<RelatoriosController> logger)
+        public RelatoriosController(IRelatorioService relatorioService, GranjaTechDbContext context, ILogger<RelatoriosController> logger)
         {
             _relatorioService = relatorioService;
+            _context = context;
             _logger = logger;
         }
 

@@ -78,17 +78,19 @@ function EstoquePage() {
 
     const handleSubmit = async () => {
         try {
+            const { granja, ...produtoSemGranja } = formData;
             const produtoParaEnviar = {
-                ...formData,
-                quantidade: parseFloat(formData.quantidade),
-                granjaId: parseInt(formData.granjaId, 10)
+                ...produtoSemGranja,
+                quantidade: parseFloat(produtoSemGranja.quantidade),
+                granjaId: parseInt(produtoSemGranja.granjaId, 10)
             };
 
             if (isEditMode) {
-                await apiService.updateProduto(formData.id, produtoParaEnviar);
+                await apiService.updateProduto(produtoParaEnviar.id, produtoParaEnviar);
             } else {
                 await apiService.createProduto(produtoParaEnviar);
             }
+            
             
             handleClose();
             fetchData();

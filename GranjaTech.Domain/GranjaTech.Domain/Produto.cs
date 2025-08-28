@@ -10,6 +10,7 @@
 
         // Cada produto pertence a uma granja específica
         public int GranjaId { get; set; }
-        public Granja Granja { get; set; } = null!;
+        public Granja? Granja { get; set; }
+
     }
 }
