@@ -81,9 +81,9 @@ function ConsumoPage() {
             setError('');
             
             const [racaoRes, aguaRes, resumoRes] = await Promise.all([
-                apiService.get(`/api/consumo/racao/${loteId}`),
-                apiService.get(`/api/consumo/agua/${loteId}`),
-                apiService.get(`/api/consumo/resumo/${loteId}`)
+                apiService.get(`/consumo/racao/${loteId}`),
+                apiService.get(`/consumo/agua/${loteId}`),
+                apiService.get(`/consumo/resumo/${loteId}`)
             ]);
 
             setConsumosRacao(racaoRes.data || []);
@@ -119,7 +119,7 @@ function ConsumoPage() {
 
     const handleSubmitRacao = async () => {
         try {
-            await apiService.post('/api/consumo/racao', {
+            await apiService.post('/consumo/racao', {
                 loteId: selectedLote.id,
                 data: formRacao.data,
                 quantidadeKg: parseFloat(formRacao.quantidadeKg),
@@ -145,7 +145,7 @@ function ConsumoPage() {
 
     const handleSubmitAgua = async () => {
         try {
-            await apiService.post('/api/consumo/agua', {
+            await apiService.post('/consumo/agua', {
                 loteId: selectedLote.id,
                 data: formAgua.data,
                 quantidadeLitros: parseFloat(formAgua.quantidadeLitros),

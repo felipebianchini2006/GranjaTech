@@ -70,6 +70,12 @@ apiClient.interceptors.response.use(
 );
 
 const apiService = {
+    // Métodos genéricos para chamadas HTTP
+    get: (url, config) => apiClient.get(url, config),
+    post: (url, data, config) => apiClient.post(url, data, config),
+    put: (url, data, config) => apiClient.put(url, data, config),
+    delete: (url, config) => apiClient.delete(url, config),
+
     // Funções de Autenticação e Utilizadores
     login: (credenciais) => apiClient.post('/auth/login', credenciais),
     registrar: (dadosDeRegisto) => apiClient.post('/auth/registrar', dadosDeRegisto),

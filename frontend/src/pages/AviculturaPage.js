@@ -67,10 +67,10 @@ function AviculturaPage() {
                 comparacaoRes,
                 curvasRes
             ] = await Promise.all([
-                apiService.get(`/api/avicultura/${loteId}/metricas`),
-                apiService.get(`/api/avicultura/${loteId}/alertas`),
-                apiService.get(`/api/avicultura/${loteId}/comparacao-industria`),
-                apiService.get(`/api/avicultura/${loteId}/curvas-crescimento`)
+                apiService.get(`/avicultura/${loteId}/metricas`),
+                apiService.get(`/avicultura/${loteId}/alertas`),
+                apiService.get(`/avicultura/${loteId}/comparacao-industria`),
+                apiService.get(`/avicultura/${loteId}/curvas-crescimento`)
             ]);
 
             setMetricas(metricasRes.data);

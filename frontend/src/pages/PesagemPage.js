@@ -67,7 +67,7 @@ function PesagemPage() {
             setLoadingData(true);
             setError('');
             
-            const response = await apiService.get(`/api/pesagem/${loteId}`);
+            const response = await apiService.get(`/pesagem/${loteId}`);
             setPesagens(response.data || []);
             
         } catch (error) {
@@ -108,7 +108,7 @@ function PesagemPage() {
 
     const handleSubmit = async () => {
         try {
-            await apiService.post('/api/pesagem', {
+            await apiService.post('/pesagem', {
                 loteId: selectedLote.id,
                 dataPesagem: formData.dataPesagem,
                 idadeDias: parseInt(formData.idadeDias),

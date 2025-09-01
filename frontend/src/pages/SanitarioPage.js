@@ -79,8 +79,8 @@ function SanitarioPage() {
             setError('');
             
             const [eventosRes, resumoRes] = await Promise.all([
-                apiService.get(`/api/sanitario/${loteId}`),
-                apiService.get(`/api/avicultura/${loteId}/resumo-sanitario`)
+                apiService.get(`/sanitario/${loteId}`),
+                apiService.get(`/avicultura/${loteId}/resumo-sanitario`)
             ]);
 
             setEventos(eventosRes.data || []);
@@ -116,7 +116,7 @@ function SanitarioPage() {
 
     const handleSubmit = async () => {
         try {
-            await apiService.post('/api/sanitario', {
+            await apiService.post('/sanitario', {
                 loteId: selectedLote.id,
                 data: formData.data,
                 tipoEvento: formData.tipoEvento,
