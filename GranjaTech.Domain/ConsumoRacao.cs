@@ -12,8 +12,8 @@ namespace GranjaTech.Domain
         public Lote Lote { get; set; } = null!;
         
         [Required]
-        public DateTime Data { get; set; }
-        
+        public DateTimeOffset Data { get; set; }
+
         /// <summary>
         /// Quantidade de ração consumida em kg
         /// </summary>
@@ -42,7 +42,7 @@ namespace GranjaTech.Domain
         /// </summary>
         [StringLength(500)]
         public string? Observacoes { get; set; }
-        
-        public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+
+        public DateTimeOffset DataCriacao { get; set; } = DateTimeOffset.UtcNow;
     }
 }

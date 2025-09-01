@@ -112,7 +112,7 @@ function ConsumoPage() {
     }, [selectedLote, fetchDadosConsumo]);
 
     const handleLoteChange = (event) => {
-// o valor vindo do componente Select é uma string; precisamos convertê-lo para número
+        // o valor vindo do componente Select é uma string; precisamos convertê-lo para número
         const loteId = parseInt(event.target.value, 10);
         const lote = lotes.find(l => l.id === loteId);
         if (lote) {
@@ -124,10 +124,10 @@ function ConsumoPage() {
         try {
             await apiService.post('/consumo/racao', {
                 loteId: selectedLote.id,
-                data: formRacao.data,
-                quantidadeKg: parseFloat(formRacao.quantidadeKg),
+                data: new Date(formRacao.data).toISOString(),               // Z
+                quantidadeKg: Number(formRacao.quantidadeKg),
                 tipoRacao: formRacao.tipoRacao,
-                avesVivas: parseInt(formRacao.avesVivas),
+                avesVivas: Number(formRacao.avesVivas),
                 observacoes: formRacao.observacoes || null
             });
 
@@ -150,10 +150,10 @@ function ConsumoPage() {
         try {
             await apiService.post('/consumo/agua', {
                 loteId: selectedLote.id,
-                data: formAgua.data,
-                quantidadeLitros: parseFloat(formAgua.quantidadeLitros),
-                avesVivas: parseInt(formAgua.avesVivas),
-                temperaturaAmbiente: formAgua.temperaturaAmbiente ? parseFloat(formAgua.temperaturaAmbiente) : null,
+                data: new Date(formAgua.data).toISOString(),                // Z
+                quantidadeLitros: Number(formAgua.quantidadeLitros),
+                avesVivas: Number(formAgua.avesVivas),
+                temperaturaAmbiente: formAgua.temperaturaAmbiente !== '' ? Number(formAgua.temperaturaAmbiente) : null,
                 observacoes: formAgua.observacoes || null
             });
 
@@ -332,14 +332,18 @@ function ConsumoPage() {
                                     ) : (
                                         <>
                                             {/* Gráfico de Consumo de Ração */}
-                                            {racaoData.length > 0 && (
+                                            {consumosRacao.length > 0 && (
                                                 <Box sx={{ mb: 4 }}>
                                                     <Typography variant="subtitle1" gutterBottom>
                                                         Evolução do Consumo de Ração
                                                     </Typography>
                                                     <Box sx={{ width: '100%', height: 300 }}>
                                                         <ResponsiveContainer>
-                                                            <LineChart data={racaoData}>
+                                                            <LineChart data={consumosRacao.map(item => ({
+                                                                data: new Date(item.data).toLocaleDateString('pt-BR'),
+                                                                racao: item.quantidadeKg,
+                                                                consumoPorAve: item.consumoPorAveGramas
+                                                            }))}>
                                                                 <CartesianGrid strokeDasharray="3 3" />
                                                                 <XAxis dataKey="data" />
                                                                 <YAxis yAxisId="left" label={{ value: 'Total (kg)', angle: -90, position: 'insideLeft' }} />
@@ -379,9 +383,7 @@ function ConsumoPage() {
                                                         ) : (
                                                             consumosRacao.map((consumo) => (
                                                                 <TableRow key={consumo.id}>
-                                                                    <TableCell>
-                                                                        {new Date(consumo.data).toLocaleDateString('pt-BR')}
-                                                                    </TableCell>
+                                                                    <TableCell>{new Date(consumo.data).toLocaleDateString('pt-BR')}</TableCell>
                                                                     <TableCell>{consumo.quantidadeKg}</TableCell>
                                                                     <TableCell>
                                                                         <Chip 
@@ -425,14 +427,18 @@ function ConsumoPage() {
                                     ) : (
                                         <>
                                             {/* Gráfico de Consumo de Água */}
-                                            {aguaData.length > 0 && (
+                                            {consumosAgua.length > 0 && (
                                                 <Box sx={{ mb: 4 }}>
                                                     <Typography variant="subtitle1" gutterBottom>
                                                         Evolução do Consumo de Água
                                                     </Typography>
                                                     <Box sx={{ width: '100%', height: 300 }}>
                                                         <ResponsiveContainer>
-                                                            <LineChart data={aguaData}>
+                                                            <LineChart data={consumosAgua.map(item => ({
+                                                                data: new Date(item.data).toLocaleDateString('pt-BR'),
+                                                                agua: item.quantidadeLitros,
+                                                                consumoPorAve: item.consumoPorAveMl
+                                                            }))}>
                                                                 <CartesianGrid strokeDasharray="3 3" />
                                                                 <XAxis dataKey="data" />
                                                                 <YAxis yAxisId="left" label={{ value: 'Total (L)', angle: -90, position: 'insideLeft' }} />
@@ -472,17 +478,11 @@ function ConsumoPage() {
                                                         ) : (
                                                             consumosAgua.map((consumo) => (
                                                                 <TableRow key={consumo.id}>
-                                                                    <TableCell>
-                                                                        {new Date(consumo.data).toLocaleDateString('pt-BR')}
-                                                                    </TableCell>
+                                                                    <TableCell>{new Date(consumo.data).toLocaleDateString('pt-BR')}</TableCell>
                                                                     <TableCell>{consumo.quantidadeLitros}</TableCell>
                                                                     <TableCell>{consumo.avesVivas.toLocaleString()}</TableCell>
                                                                     <TableCell>{consumo.consumoPorAveMl.toFixed(1)}</TableCell>
-                                                                    <TableCell>
-                                                                        {consumo.temperaturaAmbiente ? 
-                                                                            `${consumo.temperaturaAmbiente}°C` : '-'
-                                                                        }
-                                                                    </TableCell>
+                                                                    <TableCell>{consumo.temperaturaAmbiente ? `${consumo.temperaturaAmbiente}°C` : '-'}</TableCell>
                                                                     <TableCell>{consumo.observacoes || '-'}</TableCell>
                                                                 </TableRow>
                                                             ))

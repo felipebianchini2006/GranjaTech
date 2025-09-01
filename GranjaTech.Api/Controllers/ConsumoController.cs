@@ -216,7 +216,7 @@ namespace GranjaTech.Api.Controllers
                         MediaPorAve = lote.ConsumosRacao.Any() ?
                             lote.ConsumosRacao.Average(c => c.ConsumoPorAveGramas) : 0,
                         UltimoRegistro = lote.ConsumosRacao.Any() ?
-                            lote.ConsumosRacao.OrderByDescending(c => c.Data).First().Data : (DateTime?)null
+                            lote.ConsumosRacao.OrderByDescending(c => c.Data).First().Data : (DateTimeOffset?)null
                     },
 
                     ConsumoAgua = new
@@ -225,7 +225,7 @@ namespace GranjaTech.Api.Controllers
                         MediaPorAve = lote.ConsumosAgua.Any() ?
                             lote.ConsumosAgua.Average(c => c.ConsumoPorAveMl) : 0,
                         UltimoRegistro = lote.ConsumosAgua.Any() ?
-                            lote.ConsumosAgua.OrderByDescending(c => c.Data).First().Data : (DateTime?)null
+                            lote.ConsumosAgua.OrderByDescending(c => c.Data).First().Data : (DateTimeOffset?)null
                     },
 
                     RelacaoAguaRacao = lote.ConsumosRacao.Sum(c => c.QuantidadeKg) > 0 ?

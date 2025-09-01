@@ -11,8 +11,8 @@ namespace GranjaTech.Application.DTOs
         public int LoteId { get; set; }
         
         [Required(ErrorMessage = "Data é obrigatória")]
-        public DateTime Data { get; set; }
-        
+        public DateTimeOffset Data { get; set; }
+
         [Required(ErrorMessage = "Quantidade em kg é obrigatória")]
         [Range(0.001, 10000, ErrorMessage = "Quantidade deve estar entre 0.001 e 10.000 kg")]
         [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
