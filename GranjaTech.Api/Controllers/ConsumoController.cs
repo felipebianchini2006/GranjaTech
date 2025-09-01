@@ -7,7 +7,6 @@ using GranjaTech.Application.DTOs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Text.Json.Serialization;
 
 namespace GranjaTech.Api.Controllers
 {
@@ -210,16 +209,16 @@ namespace GranjaTech.Api.Controllers
                     LoteId = lote.Id,
                     LoteIdentificador = lote.Identificador,
                     IdadeDias = lote.IdadeAtualDias,
-                    
+
                     ConsumoRacao = new
                     {
                         TotalKg = lote.ConsumosRacao.Sum(c => c.QuantidadeKg),
-                        MediaPorAve = lote.ConsumosRacao.Any() ? 
+                        MediaPorAve = lote.ConsumosRacao.Any() ?
                             lote.ConsumosRacao.Average(c => c.ConsumoPorAveGramas) : 0,
                         UltimoRegistro = lote.ConsumosRacao.Any() ?
                             lote.ConsumosRacao.OrderByDescending(c => c.Data).First().Data : (DateTime?)null
                     },
-                    
+
                     ConsumoAgua = new
                     {
                         TotalLitros = lote.ConsumosAgua.Sum(c => c.QuantidadeLitros),
@@ -228,7 +227,7 @@ namespace GranjaTech.Api.Controllers
                         UltimoRegistro = lote.ConsumosAgua.Any() ?
                             lote.ConsumosAgua.OrderByDescending(c => c.Data).First().Data : (DateTime?)null
                     },
-                    
+
                     RelacaoAguaRacao = lote.ConsumosRacao.Sum(c => c.QuantidadeKg) > 0 ?
                         lote.ConsumosAgua.Sum(c => c.QuantidadeLitros) / lote.ConsumosRacao.Sum(c => c.QuantidadeKg) : 0
                 };
@@ -240,20 +239,5 @@ namespace GranjaTech.Api.Controllers
                 return BadRequest(new { message = "Erro ao obter resumo de consumo", error = ex.Message });
             }
         }
-    }
-
-    // DTO para consumo de água
-    public class CreateConsumoAguaDto
-    {
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        public int LoteId { get; set; }
-        public DateTime Data { get; set; }
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        public decimal QuantidadeLitros { get; set; }
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        public int AvesVivas { get; set; }
-        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
-        public decimal? TemperaturaAmbiente { get; set; }
-        public string? Observacoes { get; set; }
     }
 }
