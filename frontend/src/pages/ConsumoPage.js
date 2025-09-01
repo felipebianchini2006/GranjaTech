@@ -112,9 +112,12 @@ function ConsumoPage() {
     }, [selectedLote, fetchDadosConsumo]);
 
     const handleLoteChange = (event) => {
-        const loteId = event.target.value;
+// o valor vindo do componente Select é uma string; precisamos convertê-lo para número
+        const loteId = parseInt(event.target.value, 10);
         const lote = lotes.find(l => l.id === loteId);
-        setSelectedLote(lote);
+        if (lote) {
+            setSelectedLote(lote);
+        }
     };
 
     const handleSubmitRacao = async () => {

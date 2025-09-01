@@ -7,6 +7,7 @@ using GranjaTech.Application.DTOs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace GranjaTech.Api.Controllers
 {
@@ -26,7 +27,7 @@ namespace GranjaTech.Api.Controllers
         /// Registra consumo de ração
         /// </summary>
         [HttpPost("racao")]
-        public async Task<IActionResult> RegistrarConsumoRacao(CreateConsumoRacaoDto dto)
+        public async Task<IActionResult> RegistrarConsumoRacao([FromBody] CreateConsumoRacaoDto dto)
         {
             try
             {
@@ -68,7 +69,7 @@ namespace GranjaTech.Api.Controllers
         /// Registra consumo de água
         /// </summary>
         [HttpPost("agua")]
-        public async Task<IActionResult> RegistrarConsumoAgua(CreateConsumoAguaDto dto)
+        public async Task<IActionResult> RegistrarConsumoAgua([FromBody] CreateConsumoAguaDto dto)
         {
             try
             {
@@ -244,10 +245,14 @@ namespace GranjaTech.Api.Controllers
     // DTO para consumo de água
     public class CreateConsumoAguaDto
     {
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int LoteId { get; set; }
         public DateTime Data { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public decimal QuantidadeLitros { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public int AvesVivas { get; set; }
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public decimal? TemperaturaAmbiente { get; set; }
         public string? Observacoes { get; set; }
     }
