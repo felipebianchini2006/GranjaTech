@@ -35,7 +35,7 @@ function SanitarioPage() {
     const [tabValue, setTabValue] = useState(0);
     
     const [formData, setFormData] = useState({
-        data: new Date().toISOString().split('T')[0],
+        data: new Date().toLocaleDateString('en-CA'),
         tipoEvento: 'Vacinacao',
         produto: '',
         loteProduto: '',
@@ -118,24 +118,24 @@ function SanitarioPage() {
         try {
             await apiService.post('/sanitario', {
                 loteId: selectedLote.id,
-                data: formData.data,
+                data: new Date(formData.data).toISOString(),               // Z
                 tipoEvento: formData.tipoEvento,
                 produto: formData.produto,
                 loteProduto: formData.loteProduto || null,
                 dosagem: formData.dosagem || null,
                 viaAdministracao: formData.viaAdministracao || null,
-                avesTratadas: formData.avesTratadas ? parseInt(formData.avesTratadas) : null,
-                duracaoTratamentoDias: formData.duracaoTratamentoDias ? parseInt(formData.duracaoTratamentoDias) : null,
-                periodoCarenciaDias: formData.periodoCarenciaDias ? parseInt(formData.periodoCarenciaDias) : null,
+                avesTratadas: formData.avesTratadas !== '' ? Number(formData.avesTratadas) : null,
+                duracaoTratamentoDias: formData.duracaoTratamentoDias !== '' ? Number(formData.duracaoTratamentoDias) : null,
+                periodoCarenciaDias: formData.periodoCarenciaDias !== '' ? Number(formData.periodoCarenciaDias) : null,
                 responsavelAplicacao: formData.responsavelAplicacao || null,
                 sintomas: formData.sintomas || null,
                 observacoes: formData.observacoes || null,
-                custo: formData.custo ? parseFloat(formData.custo) : null
+                custo: formData.custo !== '' ? Number(formData.custo) : null
             });
 
             setOpen(false);
             setFormData({
-                data: new Date().toISOString().split('T')[0],
+                data: new Date().toLocaleDateString('en-CA'),
                 tipoEvento: 'Vacinacao',
                 produto: '',
                 loteProduto: '',

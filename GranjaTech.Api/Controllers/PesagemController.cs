@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using GranjaTech.Infrastructure;
 using GranjaTech.Domain;
 using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces; // + auditoria
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,10 +17,12 @@ namespace GranjaTech.Api.Controllers
     public class PesagemController : ControllerBase
     {
         private readonly GranjaTechDbContext _context;
+        private readonly IAuditoriaService _auditoria; // +
 
-        public PesagemController(GranjaTechDbContext context)
+        public PesagemController(GranjaTechDbContext context, IAuditoriaService auditoria) // +
         {
             _context = context;
+            _auditoria = auditoria; // +
         }
 
         /// <summary>
@@ -55,6 +58,12 @@ namespace GranjaTech.Api.Controllers
 
                 _context.PesagensSemanais.Add(pesagem);
                 await _context.SaveChangesAsync();
+
+                // Auditoria
+                await _auditoria.RegistrarLog(
+                    "CRIAR_PESAGEM",
+                    $"LoteId={dto.LoteId}; Data={dto.DataPesagem:yyyy-MM-dd}; PesoMedio={dto.PesoMedioGramas}g; Amostra={dto.QuantidadeAmostrada}; Id={pesagem.Id}"
+                );
 
                 return Ok(new { message = "Pesagem registrada com sucesso", id = pesagem.Id });
             }
@@ -120,26 +129,26 @@ namespace GranjaTech.Api.Controllers
                 }
 
                 var pesagens = lote.PesagensSemanais.OrderBy(p => p.SemanaVida).ToList();
-                
+
                 var resumo = new
                 {
                     LoteId = lote.Id,
                     LoteIdentificador = lote.Identificador,
                     IdadeAtualDias = lote.IdadeAtualDias,
-                    
+
                     PesoAtual = pesagens.Any() ? pesagens.Last().PesoMedioGramas : 0,
                     PesoInicial = pesagens.Any() ? pesagens.First().PesoMedioGramas : 45, // Peso padrão inicial
-                    
+
                     GanhoTotal = pesagens.Any() ? pesagens.Last().PesoMedioGramas - (pesagens.First().PesoMedioGramas) : 0,
-                    
-                    GanhoMedioDiario = pesagens.Count > 1 ? 
+
+                    GanhoMedioDiario = pesagens.Count > 1 ?
                         pesagens.Skip(1).Average(p => p.GanhoMedioDiario) : 0,
-                    
+
                     UniformidadeAtual = pesagens.Any() && pesagens.Last().CoeficienteVariacao.HasValue ?
                         100 - pesagens.Last().CoeficienteVariacao.Value : 0,
-                    
+
                     TotalPesagens = pesagens.Count,
-                    
+
                     CurvaCrescimento = pesagens.Select(p => new
                     {
                         Semana = p.SemanaVida,

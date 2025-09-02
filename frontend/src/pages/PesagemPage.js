@@ -29,7 +29,7 @@ function PesagemPage() {
     const [open, setOpen] = useState(false);
     
     const [formData, setFormData] = useState({
-        dataPesagem: new Date().toISOString().split('T')[0],
+        dataPesagem: new Date().toLocaleDateString('en-CA'),
         idadeDias: '',
         semanaVida: '',
         pesoMedioGramas: '',
@@ -110,22 +110,22 @@ function PesagemPage() {
         try {
             await apiService.post('/pesagem', {
                 loteId: selectedLote.id,
-                dataPesagem: formData.dataPesagem,
-                idadeDias: parseInt(formData.idadeDias),
-                semanaVida: parseInt(formData.semanaVida),
-                pesoMedioGramas: parseFloat(formData.pesoMedioGramas),
-                quantidadeAmostrada: parseInt(formData.quantidadeAmostrada),
-                pesoMinimo: formData.pesoMinimo ? parseFloat(formData.pesoMinimo) : null,
-                pesoMaximo: formData.pesoMaximo ? parseFloat(formData.pesoMaximo) : null,
-                desvioPadrao: formData.desvioPadrao ? parseFloat(formData.desvioPadrao) : null,
-                coeficienteVariacao: formData.coeficienteVariacao ? parseFloat(formData.coeficienteVariacao) : null,
-                ganhoSemanal: formData.ganhoSemanal ? parseFloat(formData.ganhoSemanal) : null,
+                dataPesagem: new Date(formData.dataPesagem).toISOString(),               // Z
+                idadeDias: Number(formData.idadeDias),
+                semanaVida: Number(formData.semanaVida),
+                pesoMedioGramas: Number(formData.pesoMedioGramas),
+                quantidadeAmostrada: Number(formData.quantidadeAmostrada),
+                pesoMinimo: formData.pesoMinimo !== '' ? Number(formData.pesoMinimo) : null,
+                pesoMaximo: formData.pesoMaximo !== '' ? Number(formData.pesoMaximo) : null,
+                desvioPadrao: formData.desvioPadrao !== '' ? Number(formData.desvioPadrao) : null,
+                coeficienteVariacao: formData.coeficienteVariacao !== '' ? Number(formData.coeficienteVariacao) : null,
+                ganhoSemanal: formData.ganhoSemanal !== '' ? Number(formData.ganhoSemanal) : null,
                 observacoes: formData.observacoes || null
             });
 
             setOpen(false);
             setFormData({
-                dataPesagem: new Date().toISOString().split('T')[0],
+                dataPesagem: new Date().toLocaleDateString('en-CA'),
                 idadeDias: '',
                 semanaVida: '',
                 pesoMedioGramas: '',

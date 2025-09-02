@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using GranjaTech.Infrastructure;
 using GranjaTech.Domain;
 using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces; // + auditoria
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,10 +17,12 @@ namespace GranjaTech.Api.Controllers
     public class SanitarioController : ControllerBase
     {
         private readonly GranjaTechDbContext _context;
+        private readonly IAuditoriaService _auditoria; // +
 
-        public SanitarioController(GranjaTechDbContext context)
+        public SanitarioController(GranjaTechDbContext context, IAuditoriaService auditoria) // +
         {
             _context = context;
+            _auditoria = auditoria; // +
         }
 
         /// <summary>
@@ -57,6 +60,12 @@ namespace GranjaTech.Api.Controllers
 
                 _context.EventosSanitarios.Add(evento);
                 await _context.SaveChangesAsync();
+
+                // Auditoria
+                await _auditoria.RegistrarLog(
+                    "CRIAR_EVENTO_SANITARIO",
+                    $"LoteId={dto.LoteId}; Data={dto.Data:yyyy-MM-dd}; Tipo={dto.TipoEvento}; Produto={dto.Produto}; Id={evento.Id}"
+                );
 
                 return Ok(new { message = "Evento sanitário registrado com sucesso", id = evento.Id });
             }
@@ -130,21 +139,21 @@ namespace GranjaTech.Api.Controllers
                 }
 
                 var eventos = lote.EventosSanitarios.ToList();
-                
+
                 var resumo = new
                 {
                     LoteId = lote.Id,
                     LoteIdentificador = lote.Identificador,
-                    
+
                     TotalEventos = eventos.Count,
                     TotalVacinacoes = eventos.Count(e => e.TipoEvento == "Vacinacao"),
                     TotalMedicacoes = eventos.Count(e => e.TipoEvento == "Medicacao"),
                     TotalDoencas = eventos.Count(e => e.TipoEvento == "Doenca"),
-                    
+
                     CustoTotalSanitario = eventos.Sum(e => e.Custo ?? 0),
-                    CustoPorAve = lote.QuantidadeAvesAtual > 0 ? 
+                    CustoPorAve = lote.QuantidadeAvesAtual > 0 ?
                         eventos.Sum(e => e.Custo ?? 0) / lote.QuantidadeAvesAtual : 0,
-                    
+
                     EventosPorTipo = eventos
                         .GroupBy(e => e.TipoEvento)
                         .Select(g => new
@@ -155,7 +164,7 @@ namespace GranjaTech.Api.Controllers
                             UltimaOcorrencia = g.Max(e => e.Data)
                         })
                         .ToList(),
-                    
+
                     UltimosEventos = eventos
                         .OrderByDescending(e => e.Data)
                         .Take(5)
@@ -167,7 +176,7 @@ namespace GranjaTech.Api.Controllers
                             e.AvesTratadas
                         })
                         .ToList(),
-                    
+
                     ProximasAcoes = eventos
                         .Where(e => e.PeriodoCarenciaDias.HasValue && e.PeriodoCarenciaDias > 0)
                         .Select(e => new

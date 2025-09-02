@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using GranjaTech.Infrastructure;
 using GranjaTech.Domain;
 using GranjaTech.Application.DTOs;
+using GranjaTech.Application.Services.Interfaces; // + auditoria
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,10 +17,12 @@ namespace GranjaTech.Api.Controllers
     public class ConsumoController : ControllerBase
     {
         private readonly GranjaTechDbContext _context;
+        private readonly IAuditoriaService _auditoria; // +
 
-        public ConsumoController(GranjaTechDbContext context)
+        public ConsumoController(GranjaTechDbContext context, IAuditoriaService auditoria) // +
         {
             _context = context;
+            _auditoria = auditoria; // +
         }
 
         /// <summary>
@@ -55,6 +58,12 @@ namespace GranjaTech.Api.Controllers
 
                 _context.ConsumosRacao.Add(consumo);
                 await _context.SaveChangesAsync();
+
+                // Auditoria
+                await _auditoria.RegistrarLog(
+                    "CRIAR_CONSUMO_RACAO",
+                    $"LoteId={dto.LoteId}; Data={dto.Data:yyyy-MM-dd}; Kg={dto.QuantidadeKg}; Tipo={dto.TipoRacao}; Aves={dto.AvesVivas}; Id={consumo.Id}"
+                );
 
                 return Ok(new { message = "Consumo de ração registrado com sucesso", id = consumo.Id });
             }
@@ -95,6 +104,12 @@ namespace GranjaTech.Api.Controllers
 
                 _context.ConsumosAgua.Add(consumo);
                 await _context.SaveChangesAsync();
+
+                // Auditoria
+                await _auditoria.RegistrarLog(
+                    "CRIAR_CONSUMO_AGUA",
+                    $"LoteId={dto.LoteId}; Data={dto.Data:yyyy-MM-dd}; Litros={dto.QuantidadeLitros}; Aves={dto.AvesVivas}; Id={consumo.Id}"
+                );
 
                 return Ok(new { message = "Consumo de água registrado com sucesso", id = consumo.Id });
             }
