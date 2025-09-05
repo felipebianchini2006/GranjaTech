@@ -1,9 +1,10 @@
+// frontend/src/pages/UsuariosPage.js
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-    Button, TextField, Box, Typography, Container, Paper, Select, MenuItem, 
+    Button, TextField, Box, Typography, Select, MenuItem, 
     FormControl, InputLabel, Table, TableBody, TableCell, TableContainer, 
     TableHead, TableRow, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Chip,
     Card, Alert
@@ -35,9 +36,9 @@ function UsuariosPage() {
             setLoading(true);
             const response = await apiService.getUsers();
             setUsers(response.data);
-            setProdutores(response.data.filter(user => user.perfilNome === 'Produtor'));
+            setProdutores(response.data.filter(u => u.perfilNome === 'Produtor'));
             setError('');
-        } catch (err) {
+        } catch {
             setError("Não foi possível carregar a lista de usuários.");
         } finally {
             setLoading(false);
@@ -48,17 +49,30 @@ function UsuariosPage() {
         fetchUsers();
     }, [fetchUsers]);
 
-    const handleOpen = (user = null) => {
+    const handleOpen = async (user = null) => {
         if (user) {
             setIsEditMode(true);
-            setFormData({
-                id: user.id,
-                nome: user.nome,
-                email: user.email,
-                senha: '',
-                perfilId: user.perfilId,
-                produtorIds: user.produtorIds || []
-            });
+            // Busca detalhes para obter produtorIds atuais
+            try {
+                const { data } = await apiService.getUserById(user.id);
+                setFormData({
+                    id: user.id,
+                    nome: user.nome,
+                    email: user.email,
+                    senha: '',
+                    perfilId: user.perfilId,
+                    produtorIds: data?.produtorIds || []
+                });
+            } catch {
+                setFormData({
+                    id: user.id,
+                    nome: user.nome,
+                    email: user.email,
+                    senha: '',
+                    perfilId: user.perfilId,
+                    produtorIds: user.produtorIds || []
+                });
+            }
         } else {
             setIsEditMode(false);
             setFormData(initialFormState);
@@ -75,7 +89,7 @@ function UsuariosPage() {
 
     const handleInputChange = (event) => {
         const { name, value } = event.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async () => {
@@ -84,7 +98,10 @@ function UsuariosPage() {
                 nome: formData.nome,
                 email: formData.email,
                 ...(formData.senha && { senha: formData.senha }),
-                perfilId: parseInt(formData.perfilId, 10)
+                perfilId: parseInt(formData.perfilId, 10),
+                ...(String(formData.perfilId) === '3'
+                    ? { produtorIds: (formData.produtorIds || []).map(Number) }
+                    : {})
             };
 
             if (isEditMode) {
@@ -98,7 +115,7 @@ function UsuariosPage() {
             fetchUsers();
             setTimeout(() => handleClose(), 1500);
         } catch (err) {
-            setError(err.response?.data?.message || "Erro ao salvar usuário.");
+            setError(err?.response?.data?.message || "Erro ao salvar usuário.");
         }
     };
 
@@ -109,7 +126,7 @@ function UsuariosPage() {
                 setMessage("Usuário excluído com sucesso!");
                 fetchUsers();
                 setTimeout(() => setMessage(''), 3000);
-            } catch (err) {
+            } catch {
                 setError("Erro ao excluir usuário.");
             }
         }
@@ -132,9 +149,7 @@ function UsuariosPage() {
         }
     };
 
-    if (loading) {
-        return <LoadingSpinner message="Carregando usuários..." />;
-    }
+    if (loading) return <LoadingSpinner message="Carregando usuários..." />;
 
     return (
         <PageContainer
@@ -145,37 +160,16 @@ function UsuariosPage() {
                     variant="contained" 
                     startIcon={<AddIcon />}
                     onClick={() => handleOpen()}
-                    sx={{ 
-                        borderRadius: 2,
-                        px: 3,
-                        py: 1.5,
-                    }}
+                    sx={{ borderRadius: 2, px: 3, py: 1.5 }}
                 >
                     Novo Usuário
                 </Button>
             }
         >
-            {message && (
-                <Alert severity="success" sx={{ mb: 3 }} onClose={() => setMessage('')}>
-                    {message}
-                </Alert>
-            )}
-            
-            {error && (
-                <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-                    {error}
-                </Alert>
-            )}
+            {message && <Alert severity="success" sx={{ mb: 3 }} onClose={() => setMessage('')}>{message}</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>{error}</Alert>}
 
-            <Dialog 
-                open={open} 
-                onClose={handleClose}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{
-                    sx: { borderRadius: 3 }
-                }}
-            >
+            <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
                 <DialogTitle sx={{ pb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <PeopleIcon color="primary" />
@@ -221,20 +215,50 @@ function UsuariosPage() {
                             name="perfilId"
                             value={formData.perfilId}
                             onChange={handleInputChange}
+                            label="Perfil"
                         >
                             <MenuItem value={1}>Administrador</MenuItem>
                             <MenuItem value={2}>Produtor</MenuItem>
                             <MenuItem value={3}>Financeiro</MenuItem>
                         </Select>
                     </FormControl>
+
+                    {String(formData.perfilId) === '3' && (
+                        <FormControl fullWidth margin="normal">
+                            <InputLabel id="produtores-label">Produtores do Financeiro</InputLabel>
+                            <Select
+                                labelId="produtores-label"
+                                multiple
+                                name="produtorIds"
+                                value={formData.produtorIds || []}
+                                onChange={(e) => {
+                                    const v = e.target.value;
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        produtorIds: typeof v === 'string' ? v.split(',') : v
+                                    }));
+                                }}
+                                renderValue={(selected) => (
+                                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                        {(selected || []).map((id) => {
+                                            const p = produtores.find(x => String(x.id) === String(id));
+                                            return <Chip key={id} label={p ? p.nome : id} size="small" />;
+                                        })}
+                                    </Box>
+                                )}
+                            >
+                                {produtores.map((p) => (
+                                    <MenuItem key={p.id} value={p.id}>
+                                        {p.nome} ({p.email})
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    )}
                 </DialogContent>
                 <DialogActions sx={{ p: 3, pt: 2 }}>
-                    <Button onClick={handleClose} variant="outlined">
-                        Cancelar
-                    </Button>
-                    <Button onClick={handleSubmit} variant="contained">
-                        {isEditMode ? 'Atualizar' : 'Criar'}
-                    </Button>
+                    <Button onClick={handleClose} variant="outlined">Cancelar</Button>
+                    <Button onClick={handleSubmit} variant="contained">{isEditMode ? 'Atualizar' : 'Criar'}</Button>
                 </DialogActions>
             </Dialog>
 
@@ -255,9 +279,7 @@ function UsuariosPage() {
                                     <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
                                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                                             <PeopleIcon sx={{ fontSize: 48, color: 'text.secondary' }} />
-                                            <Typography color="text.secondary">
-                                                Nenhum usuário encontrado
-                                            </Typography>
+                                            <Typography color="text.secondary">Nenhum usuário encontrado</Typography>
                                         </Box>
                                     </TableCell>
                                 </TableRow>
@@ -267,25 +289,18 @@ function UsuariosPage() {
                                     return (
                                         <TableRow 
                                             key={user.id}
-                                            sx={{ 
-                                                '&:hover': { backgroundColor: 'action.hover' },
-                                                transition: 'background-color 0.2s ease-in-out',
-                                            }}
+                                            sx={{ '&:hover': { backgroundColor: 'action.hover' }, transition: 'background-color 0.2s ease-in-out' }}
                                         >
                                             <TableCell>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                     <PersonIcon color="primary" sx={{ fontSize: 20 }} />
-                                                    <Typography fontWeight={500}>
-                                                        {user.nome}
-                                                    </Typography>
+                                                    <Typography fontWeight={500}>{user.nome}</Typography>
                                                 </Box>
                                             </TableCell>
                                             <TableCell>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <EmailIcon color="action" sx={{ fontSize: 16 }} />
-                                                    <Typography variant="body2">
-                                                        {user.email}
-                                                    </Typography>
+                                                    <Typography variant="body2">{user.email}</Typography>
                                                 </Box>
                                             </TableCell>
                                             <TableCell>
@@ -298,18 +313,10 @@ function UsuariosPage() {
                                                 />
                                             </TableCell>
                                             <TableCell align="right">
-                                                <IconButton 
-                                                    onClick={() => handleOpen(user)}
-                                                    size="small"
-                                                    sx={{ mr: 1 }}
-                                                >
+                                                <IconButton onClick={() => handleOpen(user)} size="small" sx={{ mr: 1 }}>
                                                     <EditIcon fontSize="small" />
                                                 </IconButton>
-                                                <IconButton 
-                                                    onClick={() => handleDelete(user.id)}
-                                                    size="small"
-                                                    color="error"
-                                                >
+                                                <IconButton onClick={() => handleDelete(user.id)} size="small" color="error">
                                                     <DeleteIcon fontSize="small" />
                                                 </IconButton>
                                             </TableCell>
