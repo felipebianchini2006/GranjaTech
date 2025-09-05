@@ -3,10 +3,10 @@ import apiService from '../services/apiService';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Typography, Box, Button, Dialog, DialogActions, DialogContent, 
     DialogTitle, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, 
-    CircularProgress, Tooltip, Card, CardContent, Alert, Grid
+    CircularProgress, Card, CardContent, Alert, Grid
 } from '@mui/material';
 import {
     Delete as DeleteIcon,
@@ -23,6 +23,14 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 const initialFormState = {
     tipo: '', identificadorUnico: '', granjaId: ''
 };
+
+// Card fixo: médias quando tudo está normal
+const dadosPadroes = [
+    { tipo: 'Temperatura', valor: '24°C' },
+    { tipo: 'Umidade', valor: '65%' },
+    { tipo: 'Pressão', valor: '1013 hPa' },
+    { tipo: 'pH', valor: '6.8' },
+];
 
 function SensoresPage() {
     const [sensores, setSensores] = useState([]);
@@ -64,15 +72,10 @@ function SensoresPage() {
         let interval;
         if (selectedSensor && autoRefresh) {
             interval = setInterval(() => {
-                console.log('Auto-refresh: atualizando leituras...');
                 fetchLeituras(selectedSensor.id);
-            }, 30000); // 30 segundos
+            }, 30000); // 30s
         }
-        return () => {
-            if (interval) {
-                clearInterval(interval);
-            }
-        };
+        return () => { if (interval) clearInterval(interval); };
     }, [selectedSensor, autoRefresh]);
 
     const handleOpen = () => {
@@ -96,7 +99,6 @@ function SensoresPage() {
                 ...formData,
                 granjaId: parseInt(formData.granjaId, 10)
             };
-
             await apiService.createSensor(sensorParaEnviar);
             handleClose();
             fetchData();
@@ -126,23 +128,17 @@ function SensoresPage() {
         setLoadingLeituras(true);
         setError('');
         try {
-            console.log('Buscando leituras para sensor ID:', sensorId);
             const response = await apiService.getLeituras(sensorId);
-            console.log('Resposta da API:', response);
-            
-            const leiturасData = response.data || [];
-            console.log('Dados das leituras:', leiturасData);
-            
-            // Garantir que os dados estão formatados corretamente para o gráfico
-            const formattedLeituras = leiturасData.map(leitura => ({
-                ...leitura,
-                timestamp: leitura.timestamp || leitura.dataHora || new Date().toISOString(),
-                valor: parseFloat(leitura.valor) || 0
-            })).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); // Ordenar por timestamp
-            
+            const leituraData = response.data || [];
+            const formattedLeituras = leituraData
+                .map(leitura => ({
+                    ...leitura,
+                    timestamp: leitura.timestamp || leitura.dataHora || new Date().toISOString(),
+                    valor: parseFloat(leitura.valor) || 0
+                }))
+                .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             setLeituras(formattedLeituras);
             setLastUpdate(new Date());
-            console.log('Leituras formatadas e ordenadas:', formattedLeituras);
         } catch (error) {
             console.error("Erro ao buscar leituras:", error);
             setError('Erro ao carregar leituras do sensor. Tente novamente.');
@@ -189,11 +185,7 @@ function SensoresPage() {
                     variant="contained" 
                     startIcon={<AddIcon />}
                     onClick={handleOpen}
-                    sx={{ 
-                        borderRadius: 2,
-                        px: 3,
-                        py: 1.5,
-                    }}
+                    sx={{ borderRadius: 2, px: 3, py: 1.5 }}
                 >
                     Novo Sensor
                 </Button>
@@ -206,6 +198,7 @@ function SensoresPage() {
             )}
 
             <Grid container spacing={3}>
+                {/* Coluna esquerda: Lista */}
                 <Grid item xs={12} md={selectedSensor ? 6 : 12}>
                     <Card>
                         <CardContent>
@@ -213,12 +206,7 @@ function SensoresPage() {
                                 <Typography variant="h6" sx={{ fontWeight: 600 }}>
                                     Lista de Sensores
                                 </Typography>
-                                <Button
-                                    startIcon={<RefreshIcon />}
-                                    onClick={fetchData}
-                                    size="small"
-                                    variant="outlined"
-                                >
+                                <Button startIcon={<RefreshIcon />} onClick={fetchData} size="small" variant="outlined">
                                     Atualizar
                                 </Button>
                             </Box>
@@ -249,7 +237,6 @@ function SensoresPage() {
                                             sensores.map((sensor) => {
                                                 const Icon = getSensorIcon(sensor.tipo);
                                                 const isSelected = selectedSensor?.id === sensor.id;
-                                                
                                                 return (
                                                     <TableRow 
                                                         key={sensor.id}
@@ -287,10 +274,7 @@ function SensoresPage() {
                                                         </TableCell>
                                                         <TableCell align="right">
                                                             <IconButton 
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleDelete(sensor.id);
-                                                                }}
+                                                                onClick={(e) => { e.stopPropagation(); handleDelete(sensor.id); }}
                                                                 size="small"
                                                                 color="error"
                                                             >
@@ -308,6 +292,7 @@ function SensoresPage() {
                     </Card>
                 </Grid>
 
+                {/* Coluna direita: Gráfico do sensor selecionado */}
                 {selectedSensor && (
                     <Grid item xs={12} md={6}>
                         <Card>
@@ -334,8 +319,8 @@ function SensoresPage() {
                                     <Box sx={{ display: 'flex', gap: 1 }}>
                                         <Button
                                             size="small"
-                                            variant={autoRefresh ? "contained" : "outlined"}
-                                            color={autoRefresh ? "success" : "primary"}
+                                            variant={autoRefresh ? 'contained' : 'outlined'}
+                                            color={autoRefresh ? 'success' : 'primary'}
                                             onClick={() => setAutoRefresh(!autoRefresh)}
                                         >
                                             {autoRefresh ? '🔄 ON' : '⏸️ OFF'}
@@ -352,11 +337,7 @@ function SensoresPage() {
                                     </Box>
                                 </Box>
 
-                                {error && (
-                                    <Alert severity="error" sx={{ mb: 2 }}>
-                                        {error}
-                                    </Alert>
-                                )}
+                                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
                                 {loadingLeituras ? (
                                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -375,47 +356,28 @@ function SensoresPage() {
                                 ) : (
                                     <Box sx={{ width: '100%', height: 300 }}>
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart 
-                                                data={leituras}
-                                                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                                            >
+                                            <LineChart data={leituras} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                                 <XAxis 
                                                     dataKey="timestamp" 
                                                     tick={{ fontSize: 10 }}
                                                     tickFormatter={(value) => {
                                                         try {
-                                                            return new Date(value).toLocaleTimeString('pt-BR', { 
-                                                                hour: '2-digit', 
-                                                                minute: '2-digit' 
-                                                            });
-                                                        } catch (e) {
-                                                            return value;
-                                                        }
+                                                            return new Date(value).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                                        } catch { return value; }
                                                     }}
                                                 />
-                                                <YAxis 
-                                                    tick={{ fontSize: 10 }}
-                                                    domain={['dataMin - 1', 'dataMax + 1']}
-                                                />
+                                                <YAxis tick={{ fontSize: 10 }} domain={['dataMin - 1', 'dataMax + 1']} />
                                                 <RechartsTooltip 
                                                     labelFormatter={(value) => {
-                                                        try {
-                                                            return new Date(value).toLocaleString('pt-BR');
-                                                        } catch (e) {
-                                                            return value;
-                                                        }
+                                                        try { return new Date(value).toLocaleString('pt-BR'); }
+                                                        catch { return value; }
                                                     }}
                                                     formatter={(value, name) => [
                                                         `${value} ${selectedSensor?.tipo === 'Temperatura' ? '°C' : '%'}`,
                                                         name
                                                     ]}
-                                                    contentStyle={{ 
-                                                        backgroundColor: '#fff',
-                                                        border: '1px solid #e0e0e0',
-                                                        borderRadius: '8px',
-                                                        boxShadow: '0px 4px 12px rgba(0,0,0,0.1)'
-                                                    }}
+                                                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }}
                                                 />
                                                 <Legend />
                                                 <Line 
@@ -436,6 +398,37 @@ function SensoresPage() {
                         </Card>
                     </Grid>
                 )}
+
+                {/* Abaixo da lista, na coluna esquerda */}
+                <Grid item xs={12} md={selectedSensor ? 6 : 12}>
+                    <Card>
+                        <CardContent>
+                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                                Dados Padrões (Médias Normais)
+                            </Typography>
+                            <Grid container spacing={2}>
+                                {dadosPadroes.map((dado, index) => {
+                                    const Icon = getSensorIcon(dado.tipo);
+                                    return (
+                                        <Grid item xs={6} md={3} key={index}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                <Icon color={getSensorColor(dado.tipo)} />
+                                                <Box>
+                                                    <Typography variant="body2" fontWeight={500}>
+                                                        {dado.tipo}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {dado.valor}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                        </Grid>
+                                    );
+                                })}
+                            </Grid>
+                        </CardContent>
+                    </Card>
+                </Grid>
             </Grid>
 
             <Dialog 
@@ -443,9 +436,7 @@ function SensoresPage() {
                 onClose={handleClose}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{
-                    sx: { borderRadius: 3 }
-                }}
+                PaperProps={{ sx: { borderRadius: 3 } }}
             >
                 <DialogTitle sx={{ pb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -487,12 +478,8 @@ function SensoresPage() {
                     </FormControl>
                 </DialogContent>
                 <DialogActions sx={{ p: 3, pt: 2 }}>
-                    <Button onClick={handleClose} variant="outlined">
-                        Cancelar
-                    </Button>
-                    <Button onClick={handleSubmit} variant="contained">
-                        Criar
-                    </Button>
+                    <Button onClick={handleClose} variant="outlined">Cancelar</Button>
+                    <Button onClick={handleSubmit} variant="contained">Criar</Button>
                 </DialogActions>
             </Dialog>
         </PageContainer>
