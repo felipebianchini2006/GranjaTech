@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GranjaTech.Api.Controllers
@@ -15,13 +16,19 @@ namespace GranjaTech.Api.Controllers
     [Route("api/[controller]")]
     public class RelatoriosController : ControllerBase
     {
-        private readonly IRelatorioService _relatorioService;
+        private readonly IRelatorioService _relatorioService;                  // já existente
+        private readonly IRelatorioAvancadoService _relatorioAvancado;         // NOVO
         private readonly GranjaTechDbContext _context;
         private readonly ILogger<RelatoriosController> _logger;
 
-        public RelatoriosController(IRelatorioService relatorioService, GranjaTechDbContext context, ILogger<RelatoriosController> logger)
+        public RelatoriosController(
+            IRelatorioService relatorioService,
+            IRelatorioAvancadoService relatorioAvancado,                      // NOVO
+            GranjaTechDbContext context,
+            ILogger<RelatoriosController> logger)
         {
             _relatorioService = relatorioService;
+            _relatorioAvancado = relatorioAvancado;                           // NOVO
             _context = context;
             _logger = logger;
         }
@@ -39,11 +46,12 @@ namespace GranjaTech.Api.Controllers
         {
             var gcMemory = GC.GetTotalMemory(false);
             var process = System.Diagnostics.Process.GetCurrentProcess();
-            return Ok(new { 
+            return Ok(new
+            {
                 gcMemoryBytes = gcMemory,
                 gcMemoryMB = gcMemory / 1024 / 1024,
                 workingSetMB = process.WorkingSet64 / 1024 / 1024,
-                timestamp = DateTime.UtcNow 
+                timestamp = DateTime.UtcNow
             });
         }
 
@@ -54,17 +62,17 @@ namespace GranjaTech.Api.Controllers
             try
             {
                 _logger.LogInformation("Teste básico iniciado");
-                
-                // Usar datas fixas dos últimos 7 dias
+
                 var dataFim = DateTime.Today;
                 var dataInicio = dataFim.AddDays(-7);
-                
+
                 _logger.LogInformation("Testando com datas: {DataInicio} a {DataFim}", dataInicio, dataFim);
-                
+
                 var result = await _relatorioService.GetRelatorioFinanceiroSimplificadoAsync(dataInicio, dataFim, null);
-                
+
                 _logger.LogInformation("Teste básico concluído com sucesso");
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Teste básico concluído com sucesso",
                     periodo = $"{dataInicio:yyyy-MM-dd} a {dataFim:yyyy-MM-dd}",
                     transacoesCount = result.Transacoes.Count,
@@ -89,23 +97,18 @@ namespace GranjaTech.Api.Controllers
             try
             {
                 _logger.LogInformation("Teste simples iniciado para período {DataInicio} a {DataFim}", dataInicio, dataFim);
-                
-                // Validar e converter datas
+
                 if (!DateTime.TryParse(dataInicio, out DateTime dataInicioDate))
-                {
                     return BadRequest(new { message = "Data de início inválida. Use formato: 2025-01-01" });
-                }
-                
+
                 if (!DateTime.TryParse(dataFim, out DateTime dataFimDate))
-                {
                     return BadRequest(new { message = "Data de fim inválida. Use formato: 2025-01-01" });
-                }
-                
-                // Query simples sem navegações
+
                 var result = await _relatorioService.GetRelatorioFinanceiroSimplificadoAsync(dataInicioDate, dataFimDate, null);
-                
+
                 _logger.LogInformation("Teste simples concluído");
-                return Ok(new { 
+                return Ok(new
+                {
                     message = "Teste concluído com sucesso",
                     timestamp = DateTime.UtcNow,
                     transacoesCount = result.Transacoes.Count,
@@ -132,14 +135,10 @@ namespace GranjaTech.Api.Controllers
                 var dataFimUtc = DateTime.SpecifyKind(dataFim, DateTimeKind.Utc);
 
                 if (dataInicioUtc > dataFimUtc)
-                {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
-                }
 
                 if ((dataFimUtc - dataInicioUtc).TotalDays > 365)
-                {
                     return BadRequest(new { message = "O período do relatório não pode exceder 365 dias." });
-                }
 
                 var relatorio = await _relatorioService.GetRelatorioFinanceiroSimplificadoAsync(dataInicioUtc, dataFimUtc, granjaId);
                 _logger.LogInformation("Retornando relatório financeiro SIMPLIFICADO com {TransacoesCount} transações", relatorio.Transacoes.Count);
@@ -160,20 +159,14 @@ namespace GranjaTech.Api.Controllers
         {
             try
             {
-                // CORREÇÃO: Especificamos que as datas devem ser tratadas como UTC.
                 var dataInicioUtc = DateTime.SpecifyKind(dataInicio, DateTimeKind.Utc);
                 var dataFimUtc = DateTime.SpecifyKind(dataFim, DateTimeKind.Utc);
 
                 if (dataInicioUtc > dataFimUtc)
-                {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
-                }
 
-                // Validação adicional no servidor para evitar períodos muito grandes (proteção de performance)
                 if ((dataFimUtc - dataInicioUtc).TotalDays > 365)
-                {
                     return BadRequest(new { message = "O período do relatório não pode exceder 365 dias." });
-                }
 
                 var relatorio = await _relatorioService.GetRelatorioFinanceiroAsync(dataInicioUtc, dataFimUtc, granjaId);
                 var transacoesCount = relatorio?.Transacoes?.Count() ?? 0;
@@ -195,20 +188,14 @@ namespace GranjaTech.Api.Controllers
         {
             try
             {
-                // CORREÇÃO: Especificamos que as datas devem ser tratadas como UTC.
                 var dataInicioUtc = DateTime.SpecifyKind(dataInicio, DateTimeKind.Utc);
                 var dataFimUtc = DateTime.SpecifyKind(dataFim, DateTimeKind.Utc);
 
                 if (dataInicioUtc > dataFimUtc)
-                {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
-                }
 
-                // Validação adicional no servidor para evitar períodos muito grandes (proteção de performance)
                 if ((dataFimUtc - dataInicioUtc).TotalDays > 365)
-                {
                     return BadRequest(new { message = "O período do relatório não pode exceder 365 dias." });
-                }
 
                 var relatorio = await _relatorioService.GetRelatorioProducaoAsync(dataInicioUtc, dataFimUtc, granjaId);
                 var lotesCount = relatorio?.Lotes?.Count() ?? 0;
@@ -237,9 +224,7 @@ namespace GranjaTech.Api.Controllers
                 var dataFimUtc = dataFim?.ToUniversalTime() ?? DateTime.UtcNow;
 
                 if (dataInicioUtc > dataFimUtc)
-                {
                     return BadRequest(new { message = "A data de início não pode ser posterior à data de fim." });
-                }
 
                 var query = _context.Lotes
                     .Include(l => l.Granja)
@@ -262,21 +247,21 @@ namespace GranjaTech.Api.Controllers
                     PeriodoFim = dataFimUtc,
                     TotalLotes = lotes.Count,
                     DataGeracao = DateTime.UtcNow,
-                    
+
                     ResumoGeral = new
                     {
                         TotalAvesAlojadas = lotes.Sum(l => l.QuantidadeAvesInicial),
                         TotalAvesAtuais = lotes.Sum(l => l.QuantidadeAvesAtual),
                         MortalidadeMedia = lotes.Any() ? lotes.Average(l => l.PercentualMortalidadeAcumulada) : 0,
                         ViabilidadeMedia = lotes.Any() ? lotes.Average(l => l.Viabilidade) : 0,
-                        
+
                         ConsumoTotalRacao = lotes.SelectMany(l => l.ConsumosRacao).Sum(c => c.QuantidadeKg),
                         ConsumoTotalAgua = lotes.SelectMany(l => l.ConsumosAgua).Sum(c => c.QuantidadeLitros),
-                        
+
                         TotalEventosSanitarios = lotes.SelectMany(l => l.EventosSanitarios).Count(),
                         CustoTotalSanitario = lotes.SelectMany(l => l.EventosSanitarios).Sum(e => e.Custo ?? 0)
                     },
-                    
+
                     DetalhesPorLote = lotes.Select(lote => new
                     {
                         LoteId = lote.Id,
@@ -285,44 +270,39 @@ namespace GranjaTech.Api.Controllers
                         DataEntrada = lote.DataEntrada,
                         IdadeAtualDias = lote.IdadeAtualDias,
                         Status = lote.Status,
-                        
-                        // Dados das aves
+
                         QuantidadeInicial = lote.QuantidadeAvesInicial,
                         QuantidadeAtual = lote.QuantidadeAvesAtual,
                         MortalidadePercentual = lote.PercentualMortalidadeAcumulada,
                         Viabilidade = lote.Viabilidade,
                         DensidadeAtual = lote.DensidadeAtual,
-                        
-                        // Crescimento
+
                         PesagemMaisRecente = lote.PesagensSemanais.OrderByDescending(p => p.DataPesagem).FirstOrDefault(),
-                        GanhoMedioDiario = lote.PesagensSemanais.Any() ? 
+                        GanhoMedioDiario = lote.PesagensSemanais.Any() ?
                             lote.PesagensSemanais.Average(p => p.GanhoMedioDiario) : 0,
-                        
-                        // Consumo
+
                         ConsumoRacao = new
                         {
                             TotalKg = lote.ConsumosRacao.Sum(c => c.QuantidadeKg),
-                            MediaPorAve = lote.ConsumosRacao.Any() ? 
+                            MediaPorAve = lote.ConsumosRacao.Any() ?
                                 lote.ConsumosRacao.Average(c => c.ConsumoPorAveGramas) : 0,
                             UltimoRegistro = lote.ConsumosRacao.OrderByDescending(c => c.Data).FirstOrDefault()?.Data
                         },
-                        
+
                         ConsumoAgua = new
                         {
                             TotalLitros = lote.ConsumosAgua.Sum(c => c.QuantidadeLitros),
-                            MediaPorAve = lote.ConsumosAgua.Any() ? 
+                            MediaPorAve = lote.ConsumosAgua.Any() ?
                                 lote.ConsumosAgua.Average(c => c.ConsumoPorAveMl) : 0,
                             UltimoRegistro = lote.ConsumosAgua.OrderByDescending(c => c.Data).FirstOrDefault()?.Data
                         },
-                        
+
                         RelacaoAguaRacao = lote.ConsumosRacao.Sum(c => c.QuantidadeKg) > 0 ?
                             lote.ConsumosAgua.Sum(c => c.QuantidadeLitros) / lote.ConsumosRacao.Sum(c => c.QuantidadeKg) : 0,
-                        
-                        // Métricas calculadas
+
                         ConversaoAlimentar = lote.CalcularConversaoAlimentar(),
                         IEP = lote.CalcularIEP(),
-                        
-                        // Sanitário
+
                         EventosSanitarios = new
                         {
                             Total = lote.EventosSanitarios.Count,
@@ -330,8 +310,7 @@ namespace GranjaTech.Api.Controllers
                             Medicacoes = lote.EventosSanitarios.Count(e => e.TipoEvento == "Medicacao"),
                             CustoTotal = lote.EventosSanitarios.Sum(e => e.Custo ?? 0)
                         },
-                        
-                        // Qualidade do ar - últimas medições
+
                         QualidadeAr = lote.MedicoesQualidadeAr
                             .OrderByDescending(q => q.DataHora)
                             .Take(1)
@@ -346,8 +325,7 @@ namespace GranjaTech.Api.Controllers
                             })
                             .FirstOrDefault()
                     }).ToList(),
-                    
-                    // Análises comparativas
+
                     Benchmarks = new
                     {
                         MelhorConversaoAlimentar = lotes.Any() ? lotes.Min(l => l.CalcularConversaoAlimentar()) : 0,
@@ -386,13 +364,10 @@ namespace GranjaTech.Api.Controllers
                     .FirstOrDefaultAsync(l => l.Id == loteId);
 
                 if (lote == null)
-                {
                     return NotFound(new { message = "Lote não encontrado" });
-                }
 
                 var relatorio = new
                 {
-                    // Dados básicos
                     LoteId = lote.Id,
                     Identificador = lote.Identificador,
                     Granja = lote.Granja.Nome,
@@ -401,8 +376,7 @@ namespace GranjaTech.Api.Controllers
                     Status = lote.Status,
                     Linhagem = lote.Linhagem,
                     OrigemPintinhos = lote.OrigemPintinhos,
-                    
-                    // Performance
+
                     Performance = new
                     {
                         QuantidadeInicial = lote.QuantidadeAvesInicial,
@@ -414,8 +388,7 @@ namespace GranjaTech.Api.Controllers
                         ConversaoAlimentar = lote.CalcularConversaoAlimentar(),
                         IEP = lote.CalcularIEP()
                     },
-                    
-                    // Curva de crescimento
+
                     CurvaCrescimento = lote.PesagensSemanais
                         .OrderBy(p => p.SemanaVida)
                         .Select(p => new
@@ -428,8 +401,7 @@ namespace GranjaTech.Api.Controllers
                             Uniformidade = p.CoeficienteVariacao.HasValue ? 100 - p.CoeficienteVariacao.Value : 0,
                             QuantidadeAmostrada = p.QuantidadeAmostrada
                         }).ToList(),
-                    
-                    // Consumo detalhado
+
                     ConsumoRacao = lote.ConsumosRacao
                         .OrderBy(c => c.Data)
                         .GroupBy(c => c.TipoRacao)
@@ -446,7 +418,7 @@ namespace GranjaTech.Api.Controllers
                                 ConsumoPorAve = c.ConsumoPorAveGramas
                             }).ToList()
                         }).ToList(),
-                    
+
                     ConsumoAgua = lote.ConsumosAgua
                         .OrderBy(c => c.Data)
                         .Select(c => new
@@ -457,8 +429,7 @@ namespace GranjaTech.Api.Controllers
                             ConsumoPorAve = c.ConsumoPorAveMl,
                             TemperaturaAmbiente = c.TemperaturaAmbiente
                         }).ToList(),
-                    
-                    // Histórico sanitário
+
                     HistoricoSanitario = lote.EventosSanitarios
                         .OrderBy(e => e.Data)
                         .Select(e => new
@@ -472,8 +443,7 @@ namespace GranjaTech.Api.Controllers
                             PeriodoCarencia = e.PeriodoCarenciaDias,
                             Responsavel = e.ResponsavelAplicacao
                         }).ToList(),
-                    
-                    // Análise de mortalidade
+
                     AnaliseMortalidade = lote.RegistrosMortalidade
                         .OrderBy(m => m.Data)
                         .Select(m => new
@@ -485,8 +455,7 @@ namespace GranjaTech.Api.Controllers
                             CausaPrincipal = m.CausaPrincipal,
                             AvesVivas = m.AvesVivas
                         }).ToList(),
-                    
-                    // Qualidade ambiental
+
                     QualidadeAmbiental = lote.MedicoesQualidadeAr
                         .OrderBy(q => q.DataHora)
                         .Select(q => new
@@ -501,7 +470,7 @@ namespace GranjaTech.Api.Controllers
                             Luminosidade = q.Luminosidade_lux,
                             ParametrosOK = q.ParametrosAceitaveis
                         }).ToList(),
-                    
+
                     DataGeracao = DateTime.UtcNow
                 };
 
@@ -510,6 +479,91 @@ namespace GranjaTech.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao gerar relatório de desempenho do lote {LoteId}", loteId);
+                return StatusCode(500, new { message = $"Erro interno do servidor: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// NOVO: Relatórios avançados unificados.
+        /// tipo: financeiro | geral | setor
+        /// setor (quando tipo=setor): consumo | pesagem | sanitario | sensores
+        /// </summary>
+        [HttpGet("avancado")]
+        public async Task<IActionResult> GetAvancado(
+            [FromQuery] int granjaId,
+            [FromQuery] DateTime inicio,
+            [FromQuery] DateTime fim,
+            [FromQuery] string tipo = "financeiro",
+            [FromQuery] string? setor = null,
+            CancellationToken ct = default)
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando relatório avançado - Tipo: {Tipo}, Setor: {Setor}, Granja: {GranjaId}",
+                    tipo, setor, granjaId);
+
+                if (fim <= inicio)
+                    return BadRequest(new { message = "Período inválido: data de fim deve ser posterior à data de início." });
+
+                var iniUtc = DateTime.SpecifyKind(inicio, DateTimeKind.Utc);
+                var fimUtc = DateTime.SpecifyKind(fim, DateTimeKind.Utc);
+
+                // Validar se a granja existe
+                var granja = await _context.Granjas
+                    .FirstOrDefaultAsync(g => g.Id == granjaId, ct);
+
+                if (granja == null)
+                    return NotFound(new { message = "Granja não encontrada." });
+
+                object result = null;
+
+                switch (tipo.ToLowerInvariant())
+                {
+                    case "financeiro":
+                        result = await _relatorioAvancado.FinanceiroAsync(granjaId, iniUtc, fimUtc, ct);
+                        break;
+
+                    case "geral":
+                        result = await _relatorioAvancado.GeralAsync(granjaId, iniUtc, fimUtc, ct);
+                        break;
+
+                    case "setor":
+                        if (string.IsNullOrWhiteSpace(setor))
+                            return BadRequest(new { message = "Informe o setor para relatórios setoriais." });
+
+                        switch (setor.ToLowerInvariant())
+                        {
+                            case "consumo":
+                                result = await _relatorioAvancado.ConsumoAsync(granjaId, iniUtc, fimUtc, ct);
+                                break;
+                            case "pesagem":
+                                result = await _relatorioAvancado.PesagemAsync(granjaId, iniUtc, fimUtc, ct);
+                                break;
+                            case "sanitario":
+                                result = await _relatorioAvancado.SanitarioAsync(granjaId, iniUtc, fimUtc, ct);
+                                break;
+                            case "sensores":
+                                result = await _relatorioAvancado.SensoresAsync(granjaId, iniUtc, fimUtc, ct);
+                                break;
+                            default:
+                                return BadRequest(new { message = $"Setor '{setor}' não é válido. Use: consumo, pesagem, sanitario, sensores" });
+                        }
+                        break;
+
+                    default:
+                        return BadRequest(new { message = $"Tipo '{tipo}' não é válido. Use: financeiro, geral, setor" });
+                }
+
+                if (result == null)
+                    return StatusCode(500, new { message = "Erro interno ao processar relatório." });
+
+                _logger.LogInformation("Relatório avançado gerado com sucesso - Tipo: {Tipo}, Setor: {Setor}", tipo, setor);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao gerar relatório avançado - Tipo: {Tipo}, Setor: {Setor}, Granja: {GranjaId}",
+                    tipo, setor, granjaId);
                 return StatusCode(500, new { message = $"Erro interno do servidor: {ex.Message}" });
             }
         }

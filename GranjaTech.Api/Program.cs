@@ -1,5 +1,6 @@
 using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Infrastructure;
+using GranjaTech.Infrastructure.Services;
 using GranjaTech.Infrastructure.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -49,6 +50,7 @@ builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 builder.Services.AddScoped<IEstoqueService, EstoqueService>();
 builder.Services.AddScoped<ISensorService, SensorService>();
 builder.Services.AddScoped<IRelatorioService, RelatorioService>();
+builder.Services.AddScoped<IRelatorioAvancadoService, RelatorioAvancadoService>();
 builder.Services.AddScoped<IAviculturaService, AviculturaService>();
 builder.Services.AddScoped<GranjaTech.Infrastructure.Services.Interfaces.ICacheService, GranjaTech.Infrastructure.Services.Implementations.MemoryCacheService>();
 

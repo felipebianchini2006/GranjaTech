@@ -7,6 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Services\Relatorios\**" />
+    <EmbeddedResource Remove="Services\Relatorios\**" />
+    <None Remove="Services\Relatorios\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GranjaTech.Domain\GranjaTech.Domain.csproj" />
   </ItemGroup>
 
