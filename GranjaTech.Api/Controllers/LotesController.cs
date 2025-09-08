@@ -62,5 +62,59 @@ namespace GranjaTech.Api.Controllers
             await _loteService.DeleteAsync(id);
             return NoContent();
         }
+
+        // ===================== MORTALIDADE =====================
+
+        /// <summary>Registra mortalidade no lote.</summary>
+        [HttpPost("{id}/mortalidades")]
+        [Authorize(Roles = "Administrador,Produtor")]
+        public async Task<ActionResult<RegistroMortalidadeDto>> RegistrarMortalidade(int id, [FromBody] CreateRegistroMortalidadeDto dto)
+        {
+            var registro = await _loteService.RegistrarMortalidadeAsync(dto, id);
+
+            var resp = new RegistroMortalidadeDto
+            {
+                Id = registro.Id,
+                LoteId = registro.LoteId,
+                Data = registro.Data,
+                Quantidade = registro.Quantidade,
+                Motivo = registro.Motivo,
+                Setor = registro.Setor,
+                Observacoes = registro.Observacoes,
+                ResponsavelRegistro = registro.ResponsavelRegistro,
+                PercentualMortalidadeDia = registro.PercentualMortalidadeDia,
+                IdadeDias = registro.IdadeDias
+            };
+
+            return CreatedAtAction(nameof(ListarMortalidades), new { id }, resp);
+        }
+
+        /// <summary>Lista mortalidades do lote.</summary>
+        [HttpGet("{id}/mortalidades")]
+        [Authorize(Roles = "Administrador,Produtor")]
+        public async Task<ActionResult<IEnumerable<RegistroMortalidadeDto>>> ListarMortalidades(int id)
+        {
+            var itens = await _loteService.ListarMortalidadesAsync(id);
+
+            var resp = new List<RegistroMortalidadeDto>();
+            foreach (var r in itens)
+            {
+                resp.Add(new RegistroMortalidadeDto
+                {
+                    Id = r.Id,
+                    LoteId = r.LoteId,
+                    Data = r.Data,
+                    Quantidade = r.Quantidade,
+                    Motivo = r.Motivo,
+                    Setor = r.Setor,
+                    Observacoes = r.Observacoes,
+                    ResponsavelRegistro = r.ResponsavelRegistro,
+                    PercentualMortalidadeDia = r.PercentualMortalidadeDia,
+                    IdadeDias = r.IdadeDias
+                });
+            }
+
+            return Ok(resp);
+        }
     }
 }

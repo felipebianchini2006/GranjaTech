@@ -124,7 +124,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                     Codigo = novoCodigo,
                     Identificador = loteDto.Identificador,
                     QuantidadeAvesInicial = loteDto.QuantidadeAvesInicial,
-                    QuantidadeAvesAtual = loteDto.QuantidadeAvesInicial, // CORREÇÃO: inicia aves vivas = aves iniciais
+                    QuantidadeAvesAtual = loteDto.QuantidadeAvesInicial, // inicia aves vivas = aves iniciais
                     DataEntrada = loteDto.DataEntrada,
                     DataSaida = loteDto.DataSaida,
                     GranjaId = loteDto.GranjaId
@@ -153,7 +153,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
             loteExistente.DataSaida = loteDto.DataSaida;
             loteExistente.GranjaId = loteDto.GranjaId;
 
-            // Não zerar aves atuais por engano. Ajuste opcional quando mudar o inicial.
+            // ajusta atual quando o inicial mudar
             if (loteDto.QuantidadeAvesInicial > 0 && loteDto.QuantidadeAvesInicial != loteExistente.QuantidadeAvesInicial)
             {
                 var delta = loteDto.QuantidadeAvesInicial - loteExistente.QuantidadeAvesInicial;
@@ -189,6 +189,55 @@ namespace GranjaTech.Infrastructure.Services.Implementations
                     "DELECAO_LOTE",
                     $"Lote '{loteParaDeletar.Identificador}' (ID: {id}) deletado.");
             }
+        }
+
+        // ===================== MORTALIDADE =====================
+
+        public async Task<RegistroMortalidade> RegistrarMortalidadeAsync(CreateRegistroMortalidadeDto dto, int loteIdFromRoute)
+        {
+            var loteId = dto.LoteId ?? loteIdFromRoute;
+
+            var lote = await _context.Lotes.FirstOrDefaultAsync(l => l.Id == loteId);
+            if (lote == null) throw new InvalidOperationException("Lote não encontrado.");
+
+            if (dto.Quantidade <= 0) throw new InvalidOperationException("Quantidade inválida.");
+
+            // trava para não ficar negativo
+            var qtd = Math.Min(dto.Quantidade, lote.QuantidadeAvesAtual);
+
+            var registro = new RegistroMortalidade
+            {
+                LoteId = lote.Id,
+                Data = dto.Data,
+                Quantidade = qtd,
+                Motivo = dto.Motivo,
+                Setor = dto.Setor,
+                Observacoes = dto.Observacoes,
+                ResponsavelRegistro = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Email)
+            };
+
+            _context.RegistrosMortalidade.Add(registro);
+
+            // baixa no lote
+            lote.QuantidadeAvesAtual -= qtd;
+            lote.DataAtualizacao = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            await _auditoriaService.RegistrarLog(
+                "REGISTRO_MORTALIDADE",
+                $"Lote '{lote.Identificador}' (ID {lote.Id}) - {qtd} aves registradas como mortas em {dto.Data:yyyy-MM-dd}."
+            );
+
+            return registro;
+        }
+
+        public async Task<IEnumerable<RegistroMortalidade>> ListarMortalidadesAsync(int loteId)
+        {
+            return await _context.RegistrosMortalidade
+                .Where(r => r.LoteId == loteId)
+                .OrderByDescending(r => r.Data)
+                .ToListAsync();
         }
     }
 }

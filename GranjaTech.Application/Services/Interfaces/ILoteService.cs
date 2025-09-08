@@ -12,5 +12,9 @@ namespace GranjaTech.Application.Services.Interfaces
         Task AddAsync(CreateLoteDto loteDto);
         Task<bool> UpdateAsync(int id, UpdateLoteDto loteDto); // Assinatura alterada
         Task DeleteAsync(int id);
+
+        // NOVO: mortalidade
+        Task<RegistroMortalidade> RegistrarMortalidadeAsync(CreateRegistroMortalidadeDto dto, int loteIdFromRoute);
+        Task<IEnumerable<RegistroMortalidade>> ListarMortalidadesAsync(int loteId);
     }
 }
