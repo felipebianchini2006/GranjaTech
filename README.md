@@ -30,20 +30,10 @@ npm start   # http://localhost:3000
 
 ## 🔧 Melhorias Recentes
 
--   Middleware global de exceções\
--   Health check `/api/relatorios/health`\
 -   Validação em relatórios (intervalo e limite)\
 -   Logs detalhados e endpoint de debug
-
-## 🔄 Próximos Passos
-
--   Paginação e índices\
--   Cache e jobs assíncronos\
--   Segredos via variáveis de ambiente\
--   Rate limiting\
--   Relatórios PDF no servidor\
--   Integração IoT (coleta automática de sensores)\
--   CI/CD, Docker e monitoramento
+-   Registro mortalidade
+-   Endpoint arrumado para registro de aves em lotes
 
 ## 📁 Estrutura
 
