@@ -1,0 +1,12 @@
+bin/
+obj/
+out/
+**/bin/
+**/obj/
+.git
+.gitignore
+.vscode
+*.user
+*.suo
+frontend/node_modules/
+frontend/build/
