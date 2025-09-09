@@ -52,8 +52,8 @@ npm start   # http://localhost:3000
 
 Desenvolvido para o **Projeto Integrador FATEC**
 
-**Integrantes:**\
-- Wendell Nascimento\
-- Felipe Bianchini\
-- Guilherme Oliveira\
-- Adryan Thiago
+**Integrantes e contribuições:**
+- **Felipe Bianchini** – Desenvolvimento do backend (.NET, EF Core, PostgreSQL) e integração da API.
+- **Wendell Nascimento** – Frontend (React + MUI), documentação, integração com o backend e testes.
+- **Guilherme Oliveira** – Modelagem do banco de dados, auditoria (Logs), endpoints de consumo/pesagem/sanitário.
+- **Adryan Thiago** – Relatórios e dashboards, suporte no módulo de sensores e melhorias em usabilidade.
