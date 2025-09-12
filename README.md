@@ -1,8 +1,10 @@
 # GranjaTech - Gestão de Granjas Avícolas
 
 Sistema web para gestão de granjas de corte.\
-**Backend:** .NET 8 + PostgreSQL + C#\
-**Frontend:** React + MUI
+
+## Tecnologias utilizadas
+- **Backend:** .NET 8 • C# • PostgreSQL  
+- **Frontend:** React • Material-UI (MUI)
 
 ## 🚀 Execução Local
 
