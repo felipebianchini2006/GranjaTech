@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { AccessibilityContext } from '../context/AccessibilityContext';
 import {
   AppBar,
   Toolbar,
@@ -21,6 +22,7 @@ import {
   Button,
   Menu,
   MenuItem,
+  Tooltip,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -36,6 +38,11 @@ import {
   Person as PersonIcon,
   Logout as LogoutIcon,
   Close as CloseIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
+  TextIncrease as TextIncreaseIcon,
+  TextDecrease as TextDecreaseIcon,
+  RestartAlt as ResetIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 280;
@@ -61,6 +68,15 @@ function ResponsiveNavigation() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const location = useLocation();
   const { token, user, logout } = useContext(AuthContext);
+  const {
+    mode,
+    toggleColorMode,
+    increaseFontScale,
+    decreaseFontScale,
+    resetSettings,
+    canIncreaseFont,
+    canDecreaseFont,
+  } = useContext(AccessibilityContext);
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -240,6 +256,63 @@ function ResponsiveNavigation() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {navigationItems.find(item => isActive(item.path))?.label || 'GranjaTech'}
           </Typography>
+
+                    <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 0.5, sm: 1 },
+              mr: { xs: 1, sm: 2 },
+            }}
+          >
+            <Tooltip title={mode === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro'}>
+              <IconButton
+                color="inherit"
+                onClick={toggleColorMode}
+                aria-label="Alternar tema"
+              >
+                {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Diminuir tamanho da fonte">
+              <Box component="span" sx={{ display: 'inline-flex' }}>
+                <IconButton
+                  color="inherit"
+                  onClick={decreaseFontScale}
+                  disabled={!canDecreaseFont}
+                  aria-label="Diminuir tamanho da fonte"
+                  sx={{ opacity: canDecreaseFont ? 1 : 0.5 }}
+                >
+                  <TextDecreaseIcon />
+                </IconButton>
+              </Box>
+            </Tooltip>
+
+            <Tooltip title="Aumentar tamanho da fonte">
+              <Box component="span" sx={{ display: 'inline-flex' }}>
+                <IconButton
+                  color="inherit"
+                  onClick={increaseFontScale}
+                  disabled={!canIncreaseFont}
+                  aria-label="Aumentar tamanho da fonte"
+                  sx={{ opacity: canIncreaseFont ? 1 : 0.5 }}
+                >
+                  <TextIncreaseIcon />
+                </IconButton>
+              </Box>
+            </Tooltip>
+
+            <Tooltip title="Restaurar preferências padrão">
+              <IconButton
+                color="inherit"
+                onClick={resetSettings}
+                aria-label="Restaurar preferências de acessibilidade"
+              >
+                <ResetIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
           
           <Button
             onClick={handleProfileMenuOpen}

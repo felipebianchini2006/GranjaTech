@@ -1,8 +1,8 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import theme from './theme';
+import createAppTheme from './theme';
 import GranjasPage from './pages/GranjasPage';
 import LotesPage from './pages/LotesPage';
 import LoginPage from './pages/LoginPage';
@@ -21,19 +21,27 @@ import RelatoriosPage from './pages/RelatoriosPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import ResponsiveNavigation from './components/ResponsiveNavigation';
 import { AuthContext } from './context/AuthContext';
+import { AccessibilityProvider, AccessibilityContext } from './context/AccessibilityContext';
 
-function App() {
+function AppContent() {
   const { token } = useContext(AuthContext);
+  const { mode, fontScale } = useContext(AccessibilityContext);
+
+  const theme = useMemo(() => createAppTheme(mode, fontScale), [mode, fontScale]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.dataset.theme = mode;
+    }
+  }, [mode]);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
         {token && <ResponsiveNavigation />}
-        
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          
           <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="/granjas" element={<ProtectedRoute><GranjasPage /></ProtectedRoute>} />
           <Route path="/lotes" element={<ProtectedRoute><LotesPage /></ProtectedRoute>} />
@@ -53,6 +61,14 @@ function App() {
         </Routes>
       </Router>
     </ThemeProvider>
+  );
+}
+
+function App() {
+  return (
+    <AccessibilityProvider>
+      <AppContent />
+    </AccessibilityProvider>
   );
 }
 
