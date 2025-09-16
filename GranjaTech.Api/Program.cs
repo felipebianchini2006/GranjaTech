@@ -107,16 +107,18 @@ app.Use(async (context, next) =>
     catch (Exception ex)
     {
         logger.LogError(ex, "Exceção na requisição {RequestId}: {Method} {Path}", requestId, context.Request.Method, context.Request.Path);
-        
+
         // Verificar se a resposta já foi iniciada
+        // teste deu certo
         if (!context.Response.HasStarted)
         {
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new { 
-                message = "Erro interno do servidor", 
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = "Erro interno do servidor",
                 requestId = requestId,
-                path = context.Request.Path.Value 
+                path = context.Request.Path.Value
             });
         }
         else
