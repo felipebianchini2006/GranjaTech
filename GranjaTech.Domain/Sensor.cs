@@ -1,18 +1,28 @@
-﻿using System.Collections.Generic;
+﻿
+using System.Collections.Generic;
+
 
 namespace GranjaTech.Domain
 {
+    // onde vai criar sensores
     public class Sensor
     {
+        // indentificação dos sensores
         public int Id { get; set; }
-        public string Tipo { get; set; } = string.Empty; // Ex: "Temperatura", "Humidade"
-        public string IdentificadorUnico { get; set; } = string.Empty; // Ex: "TEMP-GRJ001-SALA1"
 
-        // Cada sensor pertence a uma granja
+        //medida temperatura e umidade
+        public string Tipo { get; set; } = string.Empty;
+
+        //  para identificar o sensor 
+        public string IdentificadorUnico { get; set; } = string.Empty;
+
+        // Guarda o número da granja onde o sensor está instalado
         public int GranjaId { get; set; }
+
+        // Permite acessar diretamente as informações da granja a que este sensor pertence
         public Granja Granja { get; set; } = null!;
 
-        // Um sensor pode ter muitas leituras
+        // Uma lista para guardar todas as leituras
         public ICollection<LeituraSensor> Leituras { get; set; } = new List<LeituraSensor>();
     }
 }

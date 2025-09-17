@@ -1,7 +1,8 @@
 ﻿using System;
+//leitura dos sensores do granjatech
 
 namespace GranjaTech.Domain
-{
+{ 
     public class LeituraSensor
     {
         public int Id { get; set; }
