@@ -144,7 +144,7 @@ namespace GranjaTech.Infrastructure.Data
             for (int dia = 1; dia <= Math.Min(idadeAtual, 42); dia++)
             {
                 var dataConsumo = dataInicio.AddDays(dia);
-                
+
                 // Encontrar o consumo base para o dia
                 var (fase, consumoBase) = consumosPorDia
                     .Where(kvp => kvp.Key <= dia)
@@ -165,7 +165,7 @@ namespace GranjaTech.Infrastructure.Data
                 // Adicionar variação de ±3%
                 var variacao = (decimal)(random.NextDouble() * 0.06 - 0.03);
                 var consumoPorAve = consumoBase * (1 + variacao);
-                
+
                 // Calcular aves vivas (diminuir gradualmente devido à mortalidade)
                 var mortalidadePorDia = 0.15m / 100m; // 0.15% ao dia (total ~6% em 42 dias)
                 var avesVivas = (int)(lote.QuantidadeAvesInicial * Math.Pow((double)(1 - mortalidadePorDia), dia));
@@ -194,7 +194,7 @@ namespace GranjaTech.Infrastructure.Data
             for (int dia = 1; dia <= Math.Min(idadeAtual, 42); dia++)
             {
                 var dataConsumo = dataInicio.AddDays(dia);
-                
+
                 // Consumo base de água por idade (ml/ave/dia)
                 var consumoBaseMl = dia switch
                 {
@@ -209,9 +209,9 @@ namespace GranjaTech.Infrastructure.Data
                 // Temperatura afeta o consumo
                 var temperatura = 20 + (decimal)(random.NextDouble() * 15); // 20-35°C
                 var fatorTemperatura = temperatura > 25 ? 1 + (temperatura - 25) * 0.03m : 1m;
-                
+
                 var consumoPorAve = consumoBaseMl * fatorTemperatura;
-                
+
                 // Variação de ±5%
                 var variacao = (decimal)(random.NextDouble() * 0.1 - 0.05);
                 consumoPorAve *= (1 + variacao);
@@ -249,11 +249,11 @@ namespace GranjaTech.Infrastructure.Data
                 if (random.NextDouble() > 0.7) continue; // 70% de chance de ter mortalidade
 
                 var dataRegistro = dataInicio.AddDays(dia);
-                
+
                 // Mortalidade mais alta nos primeiros dias
                 var mortalidadeMaxima = dia <= 7 ? 15 : dia <= 21 ? 8 : 5;
                 var quantidadeMortas = random.Next(1, mortalidadeMaxima + 1);
-                
+
                 if (totalMortes + quantidadeMortas > lote.QuantidadeAvesInicial * 0.08m) // Máximo 8% de mortalidade
                     continue;
 
@@ -346,11 +346,11 @@ namespace GranjaTech.Infrastructure.Data
             for (int dia = 1; dia <= Math.Min(idadeAtual, 42); dia += random.Next(2, 5))
             {
                 var horarios = new[] { 8, 14, 20 }; // 3 medições por dia selecionado
-                
+
                 foreach (var hora in horarios)
                 {
                     var dataHora = dataInicio.AddDays(dia).AddHours(hora);
-                    
+
                     // Valores que variam ao longo do dia e com a idade das aves
                     var temperatura = hora switch
                     {
@@ -377,7 +377,7 @@ namespace GranjaTech.Infrastructure.Data
                         Luminosidade_lux = hora == 14 ? random.Next(30, 60) : random.Next(5, 20), // Mais luz à tarde
                         LocalMedicao = random.NextDouble() > 0.5 ? "Centro do galpão" : "Próximo aos comedouros",
                         EquipamentoMedicao = "Sensor Automático IoT",
-                        Observacoes = temperatura > 30 ? "Temperatura elevada - verificar ventilação" : 
+                        Observacoes = temperatura > 30 ? "Temperatura elevada - verificar ventilação" :
                                      nh3 > 20 ? "Amônia em nível de atenção" : null
                     };
 
