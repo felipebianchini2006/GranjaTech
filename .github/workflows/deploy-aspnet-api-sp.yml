@@ -1,0 +1,38 @@
+name: Build and Deploy ASP.NET Core API (az webapp deploy via Service Principal)
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore and publish
+        working-directory: .
+        run: |
+          dotnet restore
+          dotnet publish GranjaTech.Api/GranjaTech.Api.csproj -c Release -o publish
+
+      - name: Login to Azure using Service Principal
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (zip deploy)
+        env:
+          AZURE_RES_GROUP: rg-granjatech-prod-brs
+          AZURE_WEBAPP_NAME: granjatech-backend-felipebianchini2006
+        run: |
+          cd publish
+          zip -r ../publish.zip .
+          cd ..
+          az webapp deploy --resource-group $AZURE_RES_GROUP --name $AZURE_WEBAPP_NAME --src-path publish.zip --type zip
