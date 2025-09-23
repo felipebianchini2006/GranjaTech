@@ -1,61 +1,46 @@
 # GranjaTech - Gestão de Granjas Avícolas
 
-Sistema web para gestão de granjas de corte.\
+Sistema web moderno para gestão de granjas de corte com **React + .NET**.
 
-## Tecnologias utilizadas
-- **Backend:** .NET 8 • C# • PostgreSQL  
-- **Frontend:** React • Material-UI (MUI)
+## 🚀 Quick Start
 
-## 🚀 Execução Local
+**Pré-requisitos:** .NET 8 SDK, Node.js 18+, PostgreSQL 12+
 
-Pré-requisitos: .NET 8 SDK, Node.js 18+, PostgreSQL 12+
-
-``` bash
+```bash
 # Backend
-cd GranjaTech.Api
-dotnet run  # https://localhost:7135
+cd GranjaTech.Api && dotnet run  # https://localhost:7135
 
-# Frontend
-cd frontend
-npm install
-npm start   # http://localhost:3000
+# Frontend  
+cd frontend && npm install && npm start  # http://localhost:3000
 ```
 
-## 📊 Funcionalidades
+## ⚡ Funcionalidades
 
--   Autenticação JWT e perfis (Admin, Produtor, Financeiro)\
--   CRUD de Granjas, Lotes, Usuários, Estoque\
--   Sensores e leituras em tempo real\
--   Consumo (ração/água), Pesagem, Sanitário\
--   Relatórios e dashboards exportáveis (Excel/PDF)\
--   Auditoria de ações (Logs)
+• **Autenticação** JWT com perfis (Admin/Produtor/Financeiro)  
+• **Gestão** completa de granjas, lotes, usuários e estoque  
+• **Sensores** IoT com leituras em tempo real  
+• **Relatórios** exportáveis (Excel/PDF) e dashboards  
+• **Auditoria** completa de ações do sistema  
 
-## 🔧 Melhorias Recentes
+## 🛠️ Stack
 
--   Validação em relatórios (intervalo e limite)\
--   Logs detalhados e endpoint de debug
--   Registro mortalidade
--   Endpoint arrumado para registro de aves em lotes
-
+**Backend:** .NET 8, PostgreSQL, Entity Framework  
+**Frontend:** React 19, Material-UI, Recharts
 ## 📁 Estrutura
 
-    GranjaTech/
-    ├── GranjaTech.Api/            # API .NET
-    ├── GranjaTech.Application/    # DTOs e serviços
-    ├── GranjaTech.Domain/         # Entidades
-    ├── GranjaTech.Infrastructure/ # DbContext, repositórios
-    └── frontend/                  # React SPA
+```
+GranjaTech/
+├── GranjaTech.Api/            # API REST .NET
+├── GranjaTech.Application/    # DTOs e serviços
+├── GranjaTech.Domain/         # Entidades de domínio
+├── GranjaTech.Infrastructure/ # DbContext e repositórios
+└── frontend/                  # React SPA
+```
 
-**Status:** ✅ Estável e em evolução
+## 👥 Projeto Acadêmico FATEC
 
-------------------------------------------------------------------------
-
-### 📘 Projeto Acadêmico
-
-Desenvolvido para o **Projeto Integrador FATEC**
-
-**Integrantes e contribuições:**
-- **Felipe Bianchini** – Desenvolvimento do backend (.NET, EF Core, PostgreSQL) e integração da API.
-- **Wendell Nascimento** – Frontend (React + MUI), documentação, integração com o backend e testes.
-- **Guilherme Oliveira** – Modelagem do banco de dados, auditoria (Logs), endpoints de consumo/pesagem/sanitário.
-- **Adryan Thiago** – Relatórios e dashboards, suporte no módulo de sensores e melhorias em usabilidade.
+**Equipe:**
+- **Felipe Bianchini** – Backend (.NET, PostgreSQL, API)
+- **Wendell Nascimento** – Frontend (React, MUI, testes)
+- **Guilherme Oliveira** – Banco de dados, auditoria, endpoints
+- **Adryan Thiago** – Relatórios, dashboards, sensores
