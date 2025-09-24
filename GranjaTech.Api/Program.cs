@@ -129,6 +129,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Lê flag para habilitar Swagger em produção via configuração (Swagger__Enabled=true)
+var enableSwagger = app.Configuration.GetValue<bool>("Swagger:Enabled");
+
 // --- Início da Seção de Configuração do Pipeline HTTP ---
 
 // Middleware de logging de requisições
@@ -166,12 +169,15 @@ app.Use(async (context, next) =>
     }
 });
 
-if (app.Environment.IsDevelopment())
+// Swagger habilitado em Desenvolvimento OU quando Swagger:Enabled=true nas configurações
+if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.InjectStylesheet("/css/swagger-dark.css");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "GranjaTech API v1");
+        c.RoutePrefix = "swagger";
     });
 }
 
@@ -184,6 +190,9 @@ app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Endpoint de health sem autenticação (útil para Health Check do App Service)
+app.MapGet("/health", () => Results.Ok("OK")).AllowAnonymous();
 
 // Seed de dados de avicultura em desenvolvimento
 if (app.Environment.IsDevelopment())
