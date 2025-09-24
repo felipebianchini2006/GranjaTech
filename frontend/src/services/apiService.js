@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'https://localhost:7135/api';
+// Usa variável de ambiente em produção e localhost no desenvolvimento
+const API_URL =
+  process.env.REACT_APP_API_URL ||
+  'https://localhost:7135/api';
 
 const apiClient = axios.create({
     baseURL: API_URL,
