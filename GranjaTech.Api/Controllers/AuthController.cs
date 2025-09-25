@@ -31,20 +31,24 @@ namespace GranjaTech.Api.Controllers
         public async Task<IActionResult> GetUsuario(int id)
         {
             var usuario = await _authService.GetUserByIdAsync(id);
-            if (usuario == null)
-            {
-                return NotFound();
-            }
+            if (usuario == null) return NotFound();
             return Ok(usuario);
         }
 
-        //[Authorize(Roles = "Administrador")]
+        // Cadastro público (sem Authorize)
         [HttpPost("registrar")]
         public async Task<IActionResult> Registrar(RegisterDto registerDto)
         {
-            var sucesso = await _authService.RegistrarAsync(registerDto);
-            if (!sucesso) return BadRequest("Email já cadastrado.");
-            return Ok(new { message = "Usuário criado com sucesso!" });
+            try
+            {
+                var sucesso = await _authService.RegistrarAsync(registerDto);
+                if (!sucesso) return BadRequest(new { message = "Email já cadastrado." });
+                return Ok(new { message = "Usuário criado com sucesso!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [Authorize(Roles = "Administrador")]
@@ -63,15 +67,11 @@ namespace GranjaTech.Api.Controllers
             try
             {
                 var sucesso = await _authService.DeleteUserAsync(id);
-                if (!sucesso)
-                {
-                    return NotFound("Usuário não encontrado.");
-                }
-                return NoContent(); // Sucesso na exclusão
+                if (!sucesso) return NotFound("Usuário não encontrado.");
+                return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                // Se o serviço lançou a exceção, retorna um BadRequest com a mensagem de erro
                 return BadRequest(new { message = ex.Message });
             }
         }
