@@ -47,7 +47,7 @@ builder.Services.AddCors(options =>
                           policy.WithOrigins(allowedOrigins)
                                 .AllowAnyHeader()
                                 .AllowAnyMethod();
-                                // .AllowCredentials(); // habilite se precisar enviar cookies/credenciais via CORS
+                          // .AllowCredentials(); // habilite se precisar enviar cookies/credenciais via CORS
                       });
 });
 
@@ -97,9 +97,19 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
+        ValidAudience = builder.Configuration["Jwt:Audience"]
     };
+
+    // --- ALTERAÇÃO APLICADA AQUI ---
+    // Validação robusta da chave JWT para evitar que a aplicação trave na inicialização.
+    var jwtKey = builder.Configuration["Jwt:Key"];
+    if (string.IsNullOrEmpty(jwtKey))
+    {
+        // Se a chave não estiver configurada, a aplicação irá parar com um erro claro.
+        throw new InvalidOperationException("A chave JWT (Jwt:Key) não está configurada.");
+    }
+    options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+    // --- FIM DA ALTERAÇÃO ---
 });
 
 builder.Services.AddEndpointsApiExplorer();
