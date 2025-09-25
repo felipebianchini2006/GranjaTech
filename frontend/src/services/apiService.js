@@ -130,16 +130,13 @@ const apiService = {
     deleteSensor: (id) => apiClient.delete(`/sensores/${id}`),
     getLeituras: (sensorId) => apiClient.get(`/sensores/${sensorId}/leituras`),
 
-    // Funções de Relatórios - VERSÃO CORRIGIDA
+    // Funções de Relatórios - com suporte a URLSearchParams
     getRelatorioFinanceiro: (params) => {
         console.log('📊 Solicitando relatório financeiro com parâmetros:', params);
         
-        // Se params é um objeto simples, usar diretamente
         if (params && typeof params === 'object' && !(params instanceof URLSearchParams)) {
             return apiClient.get('/relatorios/financeiro', { params });
         }
-        
-        // Se params é URLSearchParams, converter para objeto
         if (params instanceof URLSearchParams) {
             const paramsObj = {};
             for (const [key, value] of params.entries()) {
@@ -147,20 +144,15 @@ const apiService = {
             }
             return apiClient.get('/relatorios/financeiro', { params: paramsObj });
         }
-        
-        // Fallback: usar params diretamente
         return apiClient.get('/relatorios/financeiro', { params });
     },
     
     getRelatorioProducao: (params) => {
         console.log('📊 Solicitando relatório de produção com parâmetros:', params);
         
-        // Se params é um objeto simples, usar diretamente
         if (params && typeof params === 'object' && !(params instanceof URLSearchParams)) {
             return apiClient.get('/relatorios/producao', { params });
         }
-        
-        // Se params é URLSearchParams, converter para objeto
         if (params instanceof URLSearchParams) {
             const paramsObj = {};
             for (const [key, value] of params.entries()) {
@@ -168,8 +160,6 @@ const apiService = {
             }
             return apiClient.get('/relatorios/producao', { params: paramsObj });
         }
-        
-        // Fallback: usar params diretamente
         return apiClient.get('/relatorios/producao', { params });
     },
 
@@ -184,8 +174,7 @@ const apiService = {
         const token = localStorage.getItem('token');
         if (token) {
             try {
-                // Decodifica o JWT (apenas a parte do payload, sem verificar assinatura)
-                const payload = JSON.parse(atob(token.split('.')[1]));
+                const payload = JSON.parse(atob(token.split('.')[1])); // decodifica payload do JWT
                 console.log('🔑 Token atual:', {
                     userId: payload.nameid || payload.sub,
                     role: payload.role,

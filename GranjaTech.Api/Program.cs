@@ -3,26 +3,26 @@ using GranjaTech.Infrastructure;
 using GranjaTech.Infrastructure.Services;
 using GranjaTech.Infrastructure.Services.Implementations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Início da Seção de Configuração de Serviços ---
-
+// =============================
+// Configurações de CORS
+// =============================
 var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
-// Lê AllowedOrigins da configuração (ex.: "https://meu-swa.azurestaticapps.net;http://localhost:3000")
-// Configure essa chave em App Service -> Configuration (ou em appsettings.Production.json)
+// Lê AllowedOrigins da configuração (ex.: "https://seu-swa.azurestaticapps.net;http://localhost:3000")
 var allowedOriginsConfig = builder.Configuration.GetValue<string>("AllowedOrigins");
 
-// Sempre inclua localhost:3000 como fallback em desenvolvimento
+// Fallback para desenvolvimento
 var defaultDevOrigins = new[] { "http://localhost:3000" };
 
 // Parse das origens ou usa fallback
@@ -41,32 +41,42 @@ else
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins(allowedOrigins)
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                          // .AllowCredentials(); // habilite se precisar enviar cookies/credenciais via CORS
-                      });
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
+    {
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+        // Se precisar enviar cookies/credenciais, descomente:
+        // .AllowCredentials();
+    });
 });
 
-// Configuração otimizada do serializador JSON
+// =============================
+// MVC / JSON
+// =============================
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-    options.JsonSerializerOptions.WriteIndented = false; // Reduzir tamanho da resposta
+    options.JsonSerializerOptions.WriteIndented = false;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-    options.JsonSerializerOptions.MaxDepth = 64; // Limitar profundidade para evitar loops infinitos
+    options.JsonSerializerOptions.MaxDepth = 64;
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 
+// =============================
+// EF Core / Npgsql
+// =============================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<GranjaTechDbContext>(options =>
-    options.UseNpgsql(connectionString));
+{
+    options.UseNpgsql(connectionString);
+});
 
-// Registo dos Serviços
+// =============================
+// DI - Serviços de domínio/aplicação
+// =============================
 builder.Services.AddScoped<IGranjaService, GranjaService>();
 builder.Services.AddScoped<ILoteService, LoteService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -78,11 +88,11 @@ builder.Services.AddScoped<ISensorService, SensorService>();
 builder.Services.AddScoped<IRelatorioService, RelatorioService>();
 builder.Services.AddScoped<IRelatorioAvancadoService, RelatorioAvancadoService>();
 builder.Services.AddScoped<IAviculturaService, AviculturaService>();
-builder.Services.AddScoped<GranjaTech.Infrastructure.Services.Interfaces.ICacheService, GranjaTech.Infrastructure.Services.Implementations.MemoryCacheService>();
+builder.Services.AddScoped<GranjaTech.Infrastructure.Services.Interfaces.ICacheService, MemoryCacheService>();
 
-// Adicionar Memory Cache
-builder.Services.AddMemoryCache();
-
+// =============================
+// JWT
+// =============================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -97,23 +107,12 @@ builder.Services.AddAuthentication(options =>
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"]
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? string.Empty))
     };
-
-    // --- ALTERAÇÃO APLICADA AQUI ---
-    // Validação robusta da chave JWT para evitar que a aplicação trave na inicialização.
-    var jwtKey = builder.Configuration["Jwt:Key"];
-    if (string.IsNullOrEmpty(jwtKey))
-    {
-        // Se a chave não estiver configurada, a aplicação irá parar com um erro claro.
-        throw new InvalidOperationException("A chave JWT (Jwt:Key) não está configurada.");
-    }
-    options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-    // --- FIM DA ALTERAÇÃO ---
 });
 
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "GranjaTech API", Version = "v1" });
@@ -135,16 +134,33 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// --- Fim da Seção de Configuração de Serviços ---
-
 var app = builder.Build();
 
-// Lê flag para habilitar Swagger em produção via configuração (Swagger__Enabled=true)
+// =============================
+// APLICA MIGRAÇÕES SEMPRE (PROD/DEV)
+// =============================
+using (var scope = app.Services.CreateScope())
+{
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<GranjaTechDbContext>();
+        db.Database.Migrate(); // aplica migrações em qualquer ambiente
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Erro ao aplicar migrações no startup");
+    }
+}
+
+// Flag de configuração para habilitar Swagger em produção
 var enableSwagger = app.Configuration.GetValue<bool>("Swagger:Enabled");
 
-// --- Início da Seção de Configuração do Pipeline HTTP ---
+// =============================
+// Pipeline HTTP
+// =============================
 
-// Middleware de logging de requisições
+// Middleware simples de logging de requisição/resposta
 app.Use(async (context, next) =>
 {
     var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RequestTracking");
@@ -179,7 +195,6 @@ app.Use(async (context, next) =>
     }
 });
 
-// Swagger habilitado em Desenvolvimento OU quando Swagger:Enabled=true nas configurações
 if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
@@ -194,39 +209,31 @@ if (app.Environment.IsDevelopment() || enableSwagger)
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Ativa CORS com as origens lidas da configuração
 app.UseCors(MyAllowSpecificOrigins);
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
-// Endpoint de health sem autenticação (útil para Health Check do App Service)
+// Endpoint de health sem autenticação (usado pelo Health Check)
 app.MapGet("/health", () => Results.Ok("OK")).AllowAnonymous();
 
-// Seed de dados de avicultura em desenvolvimento
+// Seed de dados de avicultura EXCLUSIVO para Desenvolvimento
 if (app.Environment.IsDevelopment())
 {
-    using (var scope = app.Services.CreateScope())
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<GranjaTechDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
     {
-        var context = scope.ServiceProvider.GetRequiredService<GranjaTechDbContext>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-        try
-        {
-            // Aplicar migrações pendentes
-            context.Database.Migrate();
-
-            // Executar seed de dados de avicultura
-            GranjaTech.Infrastructure.Data.AviculturaSeedData.SeedAviculturaData(context, logger);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro durante a inicialização do banco de dados");
-        }
+        // Garantir migrações (já rodou acima), e executar seed apenas em DEV
+        GranjaTech.Infrastructure.Data.AviculturaSeedData.SeedAviculturaData(context, logger);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Erro durante a inicialização/seed de dados (DEV)");
     }
 }
-
-// --- Fim da Seção de Configuração do Pipeline HTTP ---
 
 app.Run();
