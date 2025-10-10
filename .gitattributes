@@ -1,5 +1,5 @@
 # Treat JavaScript files as C# for GitHub linguist
-*.js linguist-language=C#
+*.js linguist-language=Elixir
 
 # Mark common build and vendor directories so they are excluded from language stats
 dist/** linguist-generated=true
