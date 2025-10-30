@@ -1,0 +1,59 @@
+# Docker Compose para Desenvolvimento
+# Use: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # ===================================
+  # PostgreSQL Database (apenas DB para dev)
+  # ===================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: granjatech-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: GranjaTechDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docs:/docker-entrypoint-initdb.d:ro
+    networks:
+      - granjatech-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================
+  # pgAdmin - Administração do PostgreSQL
+  # ===================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: granjatech-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@granjatech.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - granjatech-dev-network
+
+networks:
+  granjatech-dev-network:
+    driver: bridge
+    name: granjatech-dev-network
+
+volumes:
+  postgres_dev_data:
+    name: granjatech-postgres-dev-data
+  pgadmin_data:
+    name: granjatech-pgadmin-data

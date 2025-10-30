@@ -1,0 +1,88 @@
+services:
+  # ===================================
+  # PostgreSQL Database
+  # ===================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: granjatech-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: GranjaTechDb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs:/docker-entrypoint-initdb.d:ro
+    networks:
+      - granjatech-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================================
+  # Backend API (.NET 8)
+  # ===================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: granjatech-backend
+    restart: unless-stopped
+    ports:
+      - "5099:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=GranjaTechDb;Username=postgres;Password=postgres123
+      - Jwt__Key=74b9f1d2-a3e9-4f7c-a9d8-9e2c1a3b5d7e-granjatech-super-secret
+      - Jwt__Issuer=GranjaTechAPI
+      - Jwt__Audience=GranjaTechApp
+      - AllowedOrigins=http://localhost:3000;http://localhost:80;http://frontend:80
+      - Swagger__Enabled=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - granjatech-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===================================
+  # Frontend (React + Nginx)
+  # ===================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: granjatech-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5099/api
+    depends_on:
+      - backend
+    networks:
+      - granjatech-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  granjatech-network:
+    driver: bridge
+    name: granjatech-network
+
+volumes:
+  postgres_data:
+    name: granjatech-postgres-data

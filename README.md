@@ -4,6 +4,16 @@ Sistema web moderno para gestão de granjas de corte com **React + .NET**.
 
 ## 🚀 Quick Start
 
+### 🐳 Docker (Recomendado)
+```bash
+docker-compose up -d  # Inicia tudo (Frontend + Backend + PostgreSQL)
+
+# Acesse:
+# Frontend:  http://localhost:3000
+# Swagger:   http://localhost:5099/swagger
+```
+
+### 💻 Desenvolvimento Local
 **Pré-requisitos:** .NET 8 SDK, Node.js 18+, PostgreSQL 12+
 
 ```bash
@@ -25,7 +35,8 @@ cd frontend && npm install && npm start  # http://localhost:3000
 ## 🛠️ Stack
 
 **Backend:** .NET 8, PostgreSQL, Entity Framework  
-**Frontend:** React 19, Material-UI, Recharts
+**Frontend:** React 19, Material-UI, Recharts  
+**DevOps:** Docker, Docker Compose
 ## 📁 Estrutura
 
 ```

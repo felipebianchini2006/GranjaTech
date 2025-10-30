@@ -1,12 +1,35 @@
-bin/
-obj/
-out/
+# .NET
 **/bin/
 **/obj/
-.git
-.gitignore
-.vscode
+**/out/
+**/.vs/
 *.user
 *.suo
+*.cache
+
+# Frontend
 frontend/node_modules/
 frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDEs
+**/.vscode/
+**/.idea/
+
+# Docs
+**/Documentação/
+README.md
+
+# Logs
+**/logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

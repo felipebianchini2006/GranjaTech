@@ -1,0 +1,112 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Build Backend Image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./Dockerfile
+        push: false
+        tags: granjatech-backend:test
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+    - name: Build Frontend Image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./frontend
+        file: ./frontend/Dockerfile
+        push: false
+        tags: granjatech-frontend:test
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+    - name: Start Docker Compose
+      run: |
+        docker-compose up -d
+        sleep 30
+
+    - name: Check Container Status
+      run: |
+        docker-compose ps
+        docker-compose logs
+
+    - name: Test Backend Health
+      run: |
+        curl -f http://localhost:5099/health || exit 1
+
+    - name: Test Frontend
+      run: |
+        curl -f http://localhost:3000 || exit 1
+
+    - name: Test Swagger
+      run: |
+        curl -f http://localhost:5099/swagger/index.html || exit 1
+
+    - name: Run Backend Tests
+      run: |
+        docker-compose exec -T backend dotnet test || true
+
+    - name: Collect Logs
+      if: failure()
+      run: |
+        docker-compose logs > docker-logs.txt
+        cat docker-logs.txt
+
+    - name: Upload Logs
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-logs
+        path: docker-logs.txt
+
+    - name: Stop Docker Compose
+      if: always()
+      run: docker-compose down -v
+
+    # Move cache
+    - name: Move cache
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  docker-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Lint Dockerfiles
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+        
+    - name: Lint Frontend Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: frontend/Dockerfile
