@@ -219,6 +219,9 @@ app.MapControllers();
 // Endpoint de health sem autenticação (usado pelo Health Check)
 app.MapGet("/health", () => Results.Ok("OK")).AllowAnonymous();
 
+// Rota raiz - redireciona para o Swagger
+app.MapGet("/", () => Results.Redirect("/swagger")).AllowAnonymous();
+
 // Seed de dados de avicultura EXCLUSIVO para Desenvolvimento
 if (app.Environment.IsDevelopment())
 {
