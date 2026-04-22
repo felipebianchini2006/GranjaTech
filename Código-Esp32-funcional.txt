@@ -1,0 +1,40 @@
+from machine import Pin, ADC
+import time
+
+print("Iniciando teste do LDR...")
+
+# LDR no GPIO 34
+ldr = ADC(Pin(34))
+ldr.atten(ADC.ATTN_11DB)     # leitura até ~3.3V
+ldr.width(ADC.WIDTH_12BIT)   # faixa de 0 a 4095
+
+ADC_MAX = 4095
+LUX_MAX = 10000  # estimativa simples
+
+def adc_para_lux(valor_adc):
+    # escala invertida: menor ADC = mais luz
+    lux = (ADC_MAX - valor_adc) / ADC_MAX * LUX_MAX
+    return round(lux, 2)
+
+def classificar_luz(lux):
+    if lux < 100:
+        return "escuro"
+    elif lux < 1000:
+        return "meia luz"
+    else:
+        return "claro"
+
+while True:
+    try:
+        adc_luz = ldr.read()
+        lux = adc_para_lux(adc_luz)
+
+        print("------------------------------")
+        print("ADC Luz:", adc_luz)
+        print("Luminosidade estimada:", lux, "lux")
+        print("Nivel de luz:", classificar_luz(lux))
+
+    except Exception as e:
+        print("Erro ao ler LDR:", e)
+
+    time.sleep(2)
