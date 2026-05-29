@@ -64,6 +64,12 @@ namespace GranjaTech.Infrastructure.Services.Implementations
         public async Task AddAsync(CreateSensorDto sensorDto)
         {
             var (userId, userRole) = GetCurrentUser();
+
+            if (!SensorTipos.TryNormalizar(sensorDto.Tipo, out var tipoNormalizado))
+            {
+                throw new InvalidOperationException($"Tipo de sensor inválido. Tipos permitidos: {SensorTipos.TiposPermitidosTexto}.");
+            }
+
             var granja = await _context.Granjas.FindAsync(sensorDto.GranjaId);
             if (granja == null || (userRole == "Produtor" && granja.UsuarioId != userId))
             {
@@ -77,7 +83,7 @@ namespace GranjaTech.Infrastructure.Services.Implementations
 
             var sensor = new Sensor
             {
-                Tipo = sensorDto.Tipo,
+                Tipo = tipoNormalizado,
                 IdentificadorUnico = sensorDto.IdentificadorUnico,
                 GranjaId = sensorDto.GranjaId
             };

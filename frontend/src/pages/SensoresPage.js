@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
+import { SENSOR_TYPES, SENSOR_TYPE_NAMES, getSensorUnit } from '../constants/sensorTypes';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
@@ -16,6 +17,7 @@ import {
     Agriculture as AgricultureIcon,
     Thermostat as ThermostatIcon,
     Opacity as OpacityIcon,
+    LightMode as LightModeIcon,
     DeviceHub as DeviceHubIcon
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -23,14 +25,6 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 const initialFormState = {
     tipo: '', identificadorUnico: '', granjaId: ''
 };
-
-// Card fixo: médias quando tudo está normal
-const dadosPadroes = [
-    { tipo: 'Temperatura', valor: '24°C' },
-    { tipo: 'Umidade', valor: '65%' },
-    { tipo: 'Pressão', valor: '1013 hPa' },
-    { tipo: 'pH', valor: '6.8' },
-];
 
 function SensoresPage() {
     const [sensores, setSensores] = useState([]);
@@ -160,6 +154,7 @@ function SensoresPage() {
         switch (tipo?.toLowerCase()) {
             case 'temperatura': return ThermostatIcon;
             case 'umidade': return OpacityIcon;
+            case 'luminosidade': return LightModeIcon;
             default: return SensorsIcon;
         }
     };
@@ -168,8 +163,20 @@ function SensoresPage() {
         switch (tipo?.toLowerCase()) {
             case 'temperatura': return 'error';
             case 'umidade': return 'info';
+            case 'luminosidade': return 'warning';
             default: return 'primary';
         }
+    };
+
+    const formatSensorValue = (value, tipo) => {
+        const unit = getSensorUnit(tipo);
+        return unit ? `${value} ${unit}` : `${value}`;
+    };
+
+    const getSensorChartName = (sensor) => {
+        if (!sensor) return 'Sensor';
+        const unit = getSensorUnit(sensor.tipo);
+        return unit ? `${sensor.tipo} (${unit})` : sensor.tipo;
     };
 
     if (loading) {
@@ -374,7 +381,7 @@ function SensoresPage() {
                                                         catch { return value; }
                                                     }}
                                                     formatter={(value, name) => [
-                                                        `${value} ${selectedSensor?.tipo === 'Temperatura' ? '°C' : '%'}`,
+                                                        formatSensorValue(value, selectedSensor?.tipo),
                                                         name
                                                     ]}
                                                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }}
@@ -387,7 +394,7 @@ function SensoresPage() {
                                                     strokeWidth={2}
                                                     dot={{ fill: '#2E7D32', strokeWidth: 2, r: 4 }}
                                                     activeDot={{ r: 6, fill: '#2E7D32' }}
-                                                    name={selectedSensor ? `${selectedSensor.tipo} (${selectedSensor.tipo === 'Temperatura' ? '°C' : '%'})` : 'Sensor'}
+                                                    name={getSensorChartName(selectedSensor)}
                                                     connectNulls={false}
                                                 />
                                             </LineChart>
@@ -407,18 +414,18 @@ function SensoresPage() {
                                 Dados Padrões (Médias Normais)
                             </Typography>
                             <Grid container spacing={2}>
-                                {dadosPadroes.map((dado, index) => {
-                                    const Icon = getSensorIcon(dado.tipo);
+                                {SENSOR_TYPES.map((sensorType) => {
+                                    const Icon = getSensorIcon(sensorType.name);
                                     return (
-                                        <Grid item xs={6} md={3} key={index}>
+                                        <Grid item xs={6} md={4} key={sensorType.name}>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <Icon color={getSensorColor(dado.tipo)} />
+                                                <Icon color={getSensorColor(sensorType.name)} />
                                                 <Box>
                                                     <Typography variant="body2" fontWeight={500}>
-                                                        {dado.tipo}
+                                                        {sensorType.name}
                                                     </Typography>
                                                     <Typography variant="caption" color="text.secondary">
-                                                        {dado.valor}
+                                                        {sensorType.defaultValue}
                                                     </Typography>
                                                 </Box>
                                             </Box>
@@ -450,11 +457,9 @@ function SensoresPage() {
                     <FormControl fullWidth margin="normal" sx={{ mb: 2 }}>
                         <InputLabel>Tipo de Sensor</InputLabel>
                         <Select name="tipo" value={formData.tipo} onChange={handleInputChange}>
-                            <MenuItem value="Temperatura">Temperatura</MenuItem>
-                            <MenuItem value="Umidade">Umidade</MenuItem>
-                            <MenuItem value="Pressão">Pressão</MenuItem>
-                            <MenuItem value="pH">pH</MenuItem>
-                            <MenuItem value="Outros">Outros</MenuItem>
+                            {SENSOR_TYPE_NAMES.map((tipo) => (
+                                <MenuItem key={tipo} value={tipo}>{tipo}</MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
                     <TextField 
