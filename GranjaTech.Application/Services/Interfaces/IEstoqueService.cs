@@ -9,7 +9,7 @@ namespace GranjaTech.Application.Services.Interfaces
     {
         Task<IEnumerable<Produto>> GetAllAsync();
         Task AddAsync(CreateProdutoDto produtoDto); // Assinatura alterada
-        Task<bool> UpdateAsync(int id, Produto produto);
+        Task<bool> UpdateAsync(int id, UpdateProdutoDto produtoDto);
         Task<bool> DeleteAsync(int id);
     }
 }

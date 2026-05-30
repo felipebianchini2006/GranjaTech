@@ -1,22 +1,34 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
+import LoginPage from './pages/LoginPage';
+import { AuthContext } from './context/AuthContext';
 
-// Mock react-router-dom to avoid import errors during testing
+jest.mock('./services/apiService', () => ({
+  login: jest.fn(),
+}));
+
 jest.mock(
   'react-router-dom',
   () => ({
-    BrowserRouter: ({ children }) => <div>{children}</div>,
-    Routes: ({ children }) => <div>{children}</div>,
-    Route: ({ element }) => <div>{element}</div>,
-    Navigate: () => null,
+    useNavigate: () => jest.fn(),
   }),
   { virtual: true }
 );
 
-const App = require('./App').default;
+const authValue = {
+  token: null,
+  user: null,
+  login: jest.fn(),
+  logout: jest.fn(),
+};
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('renders the current GranjaTech login screen', () => {
+  render(
+    <AuthContext.Provider value={authValue}>
+      <LoginPage />
+    </AuthContext.Provider>
+  );
+
+  expect(screen.getByRole('heading', { name: /GranjaTech/i })).toBeInTheDocument();
+  expect(screen.getByText(/Sistema de monitoramento e gestão de granjas/i)).toBeInTheDocument();
 });

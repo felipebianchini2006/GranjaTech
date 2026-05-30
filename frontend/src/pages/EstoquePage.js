@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Typography, Box, Button, Dialog, DialogActions, DialogContent, 
     DialogTitle, TextField, Select, MenuItem, FormControl, InputLabel, IconButton,
     Card, Chip, Alert
@@ -18,13 +17,13 @@ import {
     Category as CategoryIcon,
     Scale as ScaleIcon
 } from '@mui/icons-material';
+import { formatNumber, normalizeUnit } from '../utils/measurementUtils';
 
 const initialFormState = {
     nome: '', tipo: '', quantidade: '', unidadeDeMedida: '', granjaId: ''
 };
 
 function EstoquePage() {
-    const { user } = useContext(AuthContext);
     const [estoque, setEstoque] = useState([]);
     const [granjas, setGranjas] = useState([]);
     const [open, setOpen] = useState(false);
@@ -82,6 +81,7 @@ function EstoquePage() {
             const produtoParaEnviar = {
                 ...produtoSemGranja,
                 quantidade: parseFloat(produtoSemGranja.quantidade),
+                unidadeDeMedida: normalizeUnit(produtoSemGranja.unidadeDeMedida),
                 granjaId: parseInt(produtoSemGranja.granjaId, 10)
             };
 
@@ -206,6 +206,8 @@ function EstoquePage() {
                         fullWidth 
                         value={formData.unidadeDeMedida} 
                         onChange={handleInputChange}
+                        placeholder="Ex: kg, g, L, mL, un, doses, sacos"
+                        helperText="Aliases comuns serão normalizados ao salvar."
                         sx={{ mb: 2 }}
                     />
                     <FormControl fullWidth margin="normal">
@@ -288,13 +290,13 @@ function EstoquePage() {
                                                     fontWeight={produto.quantidade < 10 ? 600 : 400}
                                                     color={produto.quantidade < 10 ? 'error.main' : 'text.primary'}
                                                 >
-                                                    {produto.quantidade?.toLocaleString() || '0'}
+                                                    {formatNumber(produto.quantidade)}
                                                 </Typography>
                                             </Box>
                                         </TableCell>
                                         <TableCell>
                                             <Typography variant="body2">
-                                                {produto.unidadeDeMedida || 'N/A'}
+                                                {normalizeUnit(produto.unidadeDeMedida) || 'N/A'}
                                             </Typography>
                                         </TableCell>
                                         <TableCell>

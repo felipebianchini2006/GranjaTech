@@ -1,6 +1,5 @@
 ﻿using GranjaTech.Application.DTOs;
 using GranjaTech.Application.Services.Interfaces;
-using GranjaTech.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -41,10 +40,14 @@ namespace GranjaTech.Api.Controllers
             {
                 return Forbid(ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduto(int id, Produto produto)
+        public async Task<IActionResult> PutProduto(int id, UpdateProdutoDto produto)
         {
             if (id != produto.Id)
             {
@@ -59,6 +62,10 @@ namespace GranjaTech.Api.Controllers
             catch (InvalidOperationException ex)
             {
                 return Forbid(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
 

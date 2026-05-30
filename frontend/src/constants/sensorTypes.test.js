@@ -12,5 +12,5 @@ test('maps supported sensor types to their display units', () => {
 });
 
 test('keeps default sensor cards aligned with supported types', () => {
-  expect(SENSOR_TYPES.map((sensor) => sensor.defaultValue)).toEqual(['24°C', '65%', '50 lux']);
+  expect(SENSOR_TYPES.map((sensor) => sensor.defaultValue)).toEqual(['24 °C', '65%', '50 lux']);
 });

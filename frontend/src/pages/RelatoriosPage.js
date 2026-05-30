@@ -7,11 +7,11 @@ import * as XLSX from 'xlsx';
 import PageContainer from '../components/PageContainer';
 import apiService from '../services/apiService';
 
-import { 
+import {
     Typography, Box, Paper, Grid, TextField, Button, Select, 
     MenuItem, FormControl, InputLabel, CircularProgress,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-    Alert, Card, CardContent, Chip, Tabs, Tab, Accordion, AccordionSummary, AccordionDetails
+    Alert, Chip, Tabs, Tab, Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
 import {
     Download as DownloadIcon,
@@ -23,17 +23,20 @@ import {
     MonitorHeart as MonitorIcon,
     RestaurantMenu as FoodIcon,
     Scale as ScaleIcon,
-    BugReport as BugIcon,
-    Refresh as RefreshIcon
+    BugReport as BugIcon
 } from '@mui/icons-material';
+import {
+    formatCount,
+    formatCurrency,
+    formatMeasurement,
+    formatSensorMeasurement,
+} from '../utils/measurementUtils';
 
 // Helpers numéricos seguros
 const n = (v) => {
     const x = Number(v);
     return Number.isFinite(x) ? x : 0;
 };
-const nfix = (v, d) => n(v).toFixed(d);
-
 function RelatoriosPage() {
     const [tabValue, setTabValue] = useState(0);
     const [filters, setFilters] = useState({
@@ -75,7 +78,7 @@ function RelatoriosPage() {
         }
         setDebugInfo(prev => prev + '\n=== TESTE DO APISERVICE ===\n');
         try {
-            const testResponse = await apiService.get('/');
+            await apiService.get('/');
             setDebugInfo(prev => prev + `✅ apiService.get('/') funcionou\n`);
         } catch (error) {
             setDebugInfo(prev => prev + `❌ apiService.get('/') falhou: ${error.message}\n`);
@@ -245,7 +248,7 @@ function RelatoriosPage() {
                         const worksheet = XLSX.utils.json_to_sheet(
                             reportData.itens.map(i => ({
                                 ...i,
-                                valor: n(i.valor)
+                                valor: formatCurrency(i.valor)
                             }))
                         );
                         XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
@@ -279,7 +282,7 @@ function RelatoriosPage() {
                     }
                     if (reportData.sensores && reportData.sensores.length > 0) {
                         const wsSensores = XLSX.utils.json_to_sheet(
-                            reportData.sensores.map(i => ({ ...i, valor: n(i.valor) }))
+                            reportData.sensores.map(i => ({ ...i, valor: formatSensorMeasurement(i.valor, i.tipo, { maximumFractionDigits: 2 }) }))
                         );
                         XLSX.utils.book_append_sheet(workbook, wsSensores, "Sensores");
                     }
@@ -293,7 +296,7 @@ function RelatoriosPage() {
                                 case 'pesagem':
                                     return { ...i, pesoMedioKg: n(i.pesoMedioKg), amostra: n(i.amostra) };
                                 case 'sensores':
-                                    return { ...i, valor: n(i.valor) };
+                                    return { ...i, valor: formatSensorMeasurement(i.valor, i.tipo, { maximumFractionDigits: 2 }) };
                                 default:
                                     return i;
                             }
@@ -301,6 +304,8 @@ function RelatoriosPage() {
                         const worksheet = XLSX.utils.json_to_sheet(norm);
                         XLSX.utils.book_append_sheet(workbook, worksheet, filters.setor.charAt(0).toUpperCase() + filters.setor.slice(1));
                     }
+                    break;
+                default:
                     break;
             }
             const fileName = `Relatorio_${getCurrentTipo()}_${filters.setor || ''}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
@@ -330,7 +335,7 @@ function RelatoriosPage() {
                             new Date(item.data).toLocaleDateString('pt-BR'),
                             item.categoria,
                             item.descricao,
-                            `R$ ${nfix(item.valor, 2)}`
+                            formatCurrency(item.valor)
                         ]);
                         autoTable(doc, { head, body, startY: yPosition });
                     }
@@ -339,23 +344,23 @@ function RelatoriosPage() {
                 case 'geral':
                     if (reportData.consumo && reportData.consumo.length > 0) {
                         doc.text('Consumo', 14, yPosition);
-                        const headConsumo = [['Data', 'Ração (Kg)', 'Água (L)', 'Aves Vivas']];
+                        const headConsumo = [['Data', 'Ração', 'Água', 'Aves Vivas']];
                         const bodyConsumo = reportData.consumo.map(item => [
                             new Date(item.data).toLocaleDateString('pt-BR'),
-                            nfix(item.racaoKg, 2),
-                            nfix(item.aguaLitros, 2),
-                            String(n(item.avesVivas))
+                            formatMeasurement(item.racaoKg, 'kg', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                            formatMeasurement(item.aguaLitros, 'L', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                            formatCount(item.avesVivas, 'aves')
                         ]);
                         autoTable(doc, { head: headConsumo, body: bodyConsumo, startY: yPosition + 10 });
                         yPosition = doc.lastAutoTable.finalY + 20;
                     }
                     if (reportData.pesagens && reportData.pesagens.length > 0) {
                         doc.text('Pesagens', 14, yPosition);
-                        const headPesagens = [['Data', 'Peso Médio (Kg)', 'Amostra']];
+                        const headPesagens = [['Data', 'Peso Médio', 'Amostra']];
                         const bodyPesagens = reportData.pesagens.map(item => [
                             new Date(item.data).toLocaleDateString('pt-BR'),
-                            nfix(item.pesoMedioKg, 3),
-                            String(n(item.amostra))
+                            formatMeasurement(item.pesoMedioKg, 'kg', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+                            formatCount(item.amostra, 'aves')
                         ]);
                         autoTable(doc, { head: headPesagens, body: bodyPesagens, startY: yPosition + 10 });
                         yPosition = doc.lastAutoTable.finalY + 20;
@@ -378,7 +383,7 @@ function RelatoriosPage() {
                         const bodySen = reportData.sensores.map(item => [
                             new Date(item.data).toLocaleDateString('pt-BR'),
                             item.tipo,
-                            nfix(item.valor, 2)
+                            formatSensorMeasurement(item.valor, item.tipo, { maximumFractionDigits: 2 })
                         ]);
                         autoTable(doc, { head: headSen, body: bodySen, startY: yPosition + 10 });
                         yPosition = doc.lastAutoTable.finalY + 20;
@@ -390,20 +395,20 @@ function RelatoriosPage() {
                         let head, body;
                         switch (filters.setor) {
                             case 'consumo':
-                                head = [['Data', 'Ração (Kg)', 'Água (L)', 'Aves Vivas']];
+                                head = [['Data', 'Ração', 'Água', 'Aves Vivas']];
                                 body = reportData.itens.map(item => [
                                     new Date(item.data).toLocaleDateString('pt-BR'),
-                                    nfix(item.racaoKg, 2),
-                                    nfix(item.aguaLitros, 2),
-                                    String(n(item.avesVivas))
+                                    formatMeasurement(item.racaoKg, 'kg', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                    formatMeasurement(item.aguaLitros, 'L', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                                    formatCount(item.avesVivas, 'aves')
                                 ]);
                                 break;
                             case 'pesagem':
-                                head = [['Data', 'Peso Médio (Kg)', 'Amostra']];
+                                head = [['Data', 'Peso Médio', 'Amostra']];
                                 body = reportData.itens.map(item => [
                                     new Date(item.data).toLocaleDateString('pt-BR'),
-                                    nfix(item.pesoMedioKg, 3),
-                                    String(n(item.amostra))
+                                    formatMeasurement(item.pesoMedioKg, 'kg', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+                                    formatCount(item.amostra, 'aves')
                                 ]);
                                 break;
                             case 'sanitario':
@@ -420,7 +425,7 @@ function RelatoriosPage() {
                                 body = reportData.itens.map(item => [
                                     new Date(item.data).toLocaleDateString('pt-BR'),
                                     item.tipo,
-                                    nfix(item.valor, 2)
+                                    formatSensorMeasurement(item.valor, item.tipo, { maximumFractionDigits: 2 })
                                 ]);
                                 break;
                             default:
@@ -428,6 +433,8 @@ function RelatoriosPage() {
                         }
                         autoTable(doc, { head, body, startY: yPosition });
                     }
+                    break;
+                default:
                     break;
             }
             const fileName = `Relatorio_${getCurrentTipo()}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
@@ -446,13 +453,13 @@ function RelatoriosPage() {
                     <Grid item xs={4}>
                         <Typography variant="body2" color="textSecondary">Total Entradas</Typography>
                         <Typography variant="h6" color="success.main">
-                            {n(reportData.totalEntradas || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {formatCurrency(reportData.totalEntradas || 0)}
                         </Typography>
                     </Grid>
                     <Grid item xs={4}>
                         <Typography variant="body2" color="textSecondary">Total Saídas</Typography>
                         <Typography variant="h6" color="error.main">
-                            {n(reportData.totalSaidas || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {formatCurrency(reportData.totalSaidas || 0)}
                         </Typography>
                     </Grid>
                     <Grid item xs={4}>
@@ -461,7 +468,7 @@ function RelatoriosPage() {
                             variant="h6" 
                             color={n(reportData.saldo) >= 0 ? 'success.main' : 'error.main'}
                         >
-                            {n(reportData.saldo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            {formatCurrency(reportData.saldo || 0)}
                         </Typography>
                     </Grid>
                 </Grid>
@@ -497,7 +504,7 @@ function RelatoriosPage() {
                                 </TableCell>
                                 <TableCell>{item.descricao}</TableCell>
                                 <TableCell align="right">
-                                    {n(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    {formatCurrency(item.valor)}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -521,8 +528,8 @@ function RelatoriosPage() {
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Data</TableCell>
-                                            <TableCell>Ração (kg)</TableCell>
-                                            <TableCell>Água (L)</TableCell>
+                                            <TableCell>Ração</TableCell>
+                                            <TableCell>Água</TableCell>
                                             <TableCell>Aves Vivas</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -530,9 +537,9 @@ function RelatoriosPage() {
                                         {reportData.consumo.map((item, index) => (
                                             <TableRow key={index}>
                                                 <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
-                                                <TableCell>{nfix(item.racaoKg, 2)}</TableCell>
-                                                <TableCell>{nfix(item.aguaLitros, 2)}</TableCell>
-                                                <TableCell>{n(item.avesVivas)}</TableCell>
+                                                <TableCell>{formatMeasurement(item.racaoKg, 'kg', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                                <TableCell>{formatMeasurement(item.aguaLitros, 'L', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                                                <TableCell>{formatCount(item.avesVivas, 'aves')}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -553,7 +560,7 @@ function RelatoriosPage() {
                                     <TableHead>
                                         <TableRow>
                                             <TableCell>Data</TableCell>
-                                            <TableCell>Peso Médio (kg)</TableCell>
+                                            <TableCell>Peso Médio</TableCell>
                                             <TableCell>Amostra</TableCell>
                                         </TableRow>
                                     </TableHead>
@@ -561,8 +568,8 @@ function RelatoriosPage() {
                                         {reportData.pesagens.map((item, index) => (
                                             <TableRow key={index}>
                                                 <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
-                                                <TableCell>{nfix(item.pesoMedioKg, 3)}</TableCell>
-                                                <TableCell>{n(item.amostra)}</TableCell>
+                                                <TableCell>{formatMeasurement(item.pesoMedioKg, 'kg', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</TableCell>
+                                                <TableCell>{formatCount(item.amostra, 'aves')}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -624,7 +631,7 @@ function RelatoriosPage() {
                                             <TableRow key={index}>
                                                 <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
                                                 <TableCell>{item.tipo}</TableCell>
-                                                <TableCell align="right">{nfix(item.valor, 2)}</TableCell>
+                                                <TableCell align="right">{formatSensorMeasurement(item.valor, item.tipo, { maximumFractionDigits: 2 })}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -642,23 +649,23 @@ function RelatoriosPage() {
         let headers, renderRow;
         switch (filters.setor) {
             case 'consumo':
-                headers = ['Data', 'Ração (Kg)', 'Água (L)', 'Aves Vivas'];
+                headers = ['Data', 'Ração', 'Água', 'Aves Vivas'];
                 renderRow = (item, index) => (
                     <TableRow key={index}>
                         <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell align="right">{nfix(item.racaoKg, 2)}</TableCell>
-                        <TableCell align="right">{nfix(item.aguaLitros, 2)}</TableCell>
-                        <TableCell align="right">{n(item.avesVivas)}</TableCell>
+                        <TableCell align="right">{formatMeasurement(item.racaoKg, 'kg', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell align="right">{formatMeasurement(item.aguaLitros, 'L', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell align="right">{formatCount(item.avesVivas, 'aves')}</TableCell>
                     </TableRow>
                 );
                 break;
             case 'pesagem':
-                headers = ['Data', 'Peso Médio (Kg)', 'Amostra'];
+                headers = ['Data', 'Peso Médio', 'Amostra'];
                 renderRow = (item, index) => (
                     <TableRow key={index}>
                         <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell align="right">{nfix(item.pesoMedioKg, 3)}</TableCell>
-                        <TableCell align="right">{n(item.amostra)}</TableCell>
+                        <TableCell align="right">{formatMeasurement(item.pesoMedioKg, 'kg', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}</TableCell>
+                        <TableCell align="right">{formatCount(item.amostra, 'aves')}</TableCell>
                     </TableRow>
                 );
                 break;
@@ -679,7 +686,7 @@ function RelatoriosPage() {
                     <TableRow key={index}>
                         <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
                         <TableCell>{item.tipo}</TableCell>
-                        <TableCell align="right">{nfix(item.valor, 2)}</TableCell>
+                        <TableCell align="right">{formatSensorMeasurement(item.valor, item.tipo, { maximumFractionDigits: 2 })}</TableCell>
                     </TableRow>
                 );
                 break;

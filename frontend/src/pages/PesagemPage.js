@@ -16,8 +16,9 @@ import {
     Refresh as RefreshIcon,
     Info as InfoIcon
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import apiService from '../services/apiService';
+import { formatCount, formatMeasurement, formatPercentage } from '../utils/measurementUtils';
 
 function PesagemPage() {
     const [lotes, setLotes] = useState([]);
@@ -237,7 +238,7 @@ function PesagemPage() {
                                     </Box>
                                     <Typography variant="h4" color="primary">
                                         {pesagens.length > 0 ? 
-                                            `${Math.max(...pesagens.map(p => p.pesoMedioGramas)).toFixed(0)}g` 
+                                            formatMeasurement(Math.max(...pesagens.map(p => p.pesoMedioGramas)), 'g', { maximumFractionDigits: 0 })
                                             : 'N/A'
                                         }
                                     </Typography>
@@ -256,7 +257,7 @@ function PesagemPage() {
                                         <Typography variant="h6">GMD Médio</Typography>
                                     </Box>
                                     <Typography variant="h4" color="success.main">
-                                        {gmdMedio.toFixed(1)}g
+                                        {formatMeasurement(gmdMedio, 'g', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">
                                         Ganho médio diário
@@ -274,7 +275,7 @@ function PesagemPage() {
                                     </Box>
                                     <Typography variant="h4" color="info.main">
                                         {pesagens.length > 0 && pesagens[pesagens.length - 1].coeficienteVariacao ?
-                                            `${(100 - pesagens[pesagens.length - 1].coeficienteVariacao).toFixed(1)}%`
+                                            formatPercentage(100 - pesagens[pesagens.length - 1].coeficienteVariacao, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
                                             : 'N/A'
                                         }
                                     </Typography>
@@ -320,7 +321,7 @@ function PesagemPage() {
                                                     <YAxis label={{ value: 'Peso (g)', angle: -90, position: 'insideLeft' }} />
                                                     <RechartsTooltip 
                                                         labelFormatter={(value) => `Semana ${value}`}
-                                                        formatter={(value) => [`${value}g`, 'Peso Médio']}
+                                                        formatter={(value) => [formatMeasurement(value, 'g', { maximumFractionDigits: 0 }), 'Peso Médio']}
                                                     />
                                                     <Line 
                                                         type="monotone" 
@@ -350,7 +351,7 @@ function PesagemPage() {
                                                     <YAxis label={{ value: 'Ganho (g)', angle: -90, position: 'insideLeft' }} />
                                                     <RechartsTooltip 
                                                         labelFormatter={(value) => `Semana ${value}`}
-                                                        formatter={(value) => [`${value}g`, 'Ganho Semanal']}
+                                                        formatter={(value) => [formatMeasurement(value, 'g', { maximumFractionDigits: 0 }), 'Ganho Semanal']}
                                                     />
                                                     <Bar dataKey="ganho" fill="#4caf50" />
                                                 </BarChart>
@@ -422,25 +423,25 @@ function PesagemPage() {
                                                             <TableCell>{pesagem.idadeDias}</TableCell>
                                                             <TableCell>
                                                                 <Typography variant="body2" fontWeight={600}>
-                                                                    {pesagem.pesoMedioGramas.toFixed(0)}g
+                                                                    {formatMeasurement(pesagem.pesoMedioGramas, 'g', { maximumFractionDigits: 0 })}
                                                                 </Typography>
                                                             </TableCell>
-                                                            <TableCell>{pesagem.quantidadeAmostrada} aves</TableCell>
+                                                            <TableCell>{formatCount(pesagem.quantidadeAmostrada, 'aves')}</TableCell>
                                                             <TableCell>
                                                                 {pesagem.pesoMinimo && pesagem.pesoMaximo ? 
-                                                                    `${pesagem.pesoMinimo.toFixed(0)} - ${pesagem.pesoMaximo.toFixed(0)}` 
+                                                                    `${formatMeasurement(pesagem.pesoMinimo, 'g', { maximumFractionDigits: 0 })} - ${formatMeasurement(pesagem.pesoMaximo, 'g', { maximumFractionDigits: 0 })}`
                                                                     : '-'
                                                                 }
                                                             </TableCell>
                                                             <TableCell>
                                                                 {pesagem.coeficienteVariacao ? 
-                                                                    `${(100 - pesagem.coeficienteVariacao).toFixed(1)}%` 
+                                                                    formatPercentage(100 - pesagem.coeficienteVariacao, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
                                                                     : '-'
                                                                 }
                                                             </TableCell>
                                                             <TableCell>
                                                                 {pesagem.ganhoSemanal ? 
-                                                                    `${pesagem.ganhoSemanal.toFixed(0)}g` 
+                                                                    formatMeasurement(pesagem.ganhoSemanal, 'g', { maximumFractionDigits: 0 })
                                                                     : '-'
                                                                 }
                                                             </TableCell>
@@ -493,7 +494,7 @@ function PesagemPage() {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Peso Médio (gramas)"
+                                        label="Peso Médio (g)"
                                         type="number"
                                         value={formData.pesoMedioGramas}
                                         onChange={(e) => setFormData(prev => ({ ...prev, pesoMedioGramas: e.target.value }))}
@@ -515,7 +516,7 @@ function PesagemPage() {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Peso Mínimo (gramas)"
+                                        label="Peso Mínimo (g)"
                                         type="number"
                                         value={formData.pesoMinimo}
                                         onChange={(e) => setFormData(prev => ({ ...prev, pesoMinimo: e.target.value }))}
@@ -525,7 +526,7 @@ function PesagemPage() {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Peso Máximo (gramas)"
+                                        label="Peso Máximo (g)"
                                         type="number"
                                         value={formData.pesoMaximo}
                                         onChange={(e) => setFormData(prev => ({ ...prev, pesoMaximo: e.target.value }))}
@@ -555,7 +556,7 @@ function PesagemPage() {
                                 <Grid item xs={12}>
                                     <TextField
                                         fullWidth
-                                        label="Ganho Semanal (gramas)"
+                                        label="Ganho Semanal (g)"
                                         type="number"
                                         value={formData.ganhoSemanal}
                                         onChange={(e) => setFormData(prev => ({ ...prev, ganhoSemanal: e.target.value }))}

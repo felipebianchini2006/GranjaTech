@@ -9,11 +9,10 @@ import {
     Container, 
     Card, 
     CardContent,
-    Alert,
-    Avatar
+    Alert
 } from '@mui/material';
-import { Agriculture as AgricultureIcon } from '@mui/icons-material';
 import LoadingSpinner from '../components/LoadingSpinner';
+import logoGranjaTech from '../assets/logo-granjatech.png';
 
 function LoginPage() {
     const [email, setEmail] = useState('');
@@ -64,20 +63,20 @@ function LoginPage() {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
-                                mb: 4,
+                                mb: 3.5,
                             }}
                         >
-                            <Avatar
+                            <Box
+                                component="img"
+                                src={logoGranjaTech}
+                                alt="Logo GranjaTech"
                                 sx={{
-                                    width: 80,
-                                    height: 80,
-                                    bgcolor: 'primary.main',
+                                    width: { xs: 96, sm: 112 },
+                                    height: 'auto',
+                                    objectFit: 'contain',
                                     mb: 2,
-                                    boxShadow: '0px 8px 24px rgba(46, 125, 50, 0.3)',
                                 }}
-                            >
-                                <AgricultureIcon sx={{ fontSize: 40 }} />
-                            </Avatar>
+                            />
                             
                             <Typography 
                                 component="h1" 
@@ -85,7 +84,7 @@ function LoginPage() {
                                 sx={{ 
                                     fontWeight: 700,
                                     color: 'primary.main',
-                                    mb: 1,
+                                    mb: 0.75,
                                 }}
                             >
                                 GranjaTech
@@ -97,7 +96,7 @@ function LoginPage() {
                                 align="center"
                                 sx={{ mb: 3 }}
                             >
-                                Sistema de Gestão Agropecuária
+                                Sistema de monitoramento e Gestão de Granjas
                             </Typography>
                         </Box>
 

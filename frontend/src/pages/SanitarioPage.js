@@ -15,12 +15,11 @@ import {
     Warning as WarningIcon,
     Assignment as AssignmentIcon,
     Refresh as RefreshIcon,
-    ExpandMore as ExpandMoreIcon,
-    Timeline as TimelineIcon,
     HighlightOff as DeathIcon
 } from '@mui/icons-material';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from 'recharts';
 import apiService from '../services/apiService';
+import { formatCount, formatCurrency, formatDays, formatPercentage } from '../utils/measurementUtils';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -327,7 +326,7 @@ function SanitarioPage() {
                                         <Typography variant="h6">Custo Total</Typography>
                                     </Box>
                                     <Typography variant="h4" color="warning.main">
-                                        R$ {eventos.reduce((t, e) => t + (e.custo || 0), 0).toFixed(2)}
+                                        {formatCurrency(eventos.reduce((t, e) => t + (e.custo || 0), 0))}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary">Custos sanitários</Typography>
                                 </CardContent></Card>
@@ -365,7 +364,7 @@ function SanitarioPage() {
                                                     <CartesianGrid strokeDasharray="3 3" />
                                                     <XAxis dataKey="mes" />
                                                     <YAxis />
-                                                    <RechartsTooltip formatter={(v) => [`R$ ${v}`, 'Custo']} />
+                                                    <RechartsTooltip formatter={(v) => [formatCurrency(v), 'Custo']} />
                                                     <Bar dataKey="custo" fill="#ff9800" />
                                                 </BarChart>
                                             </ResponsiveContainer>
@@ -415,13 +414,13 @@ function SanitarioPage() {
                                                     .map((m) => (
                                                         <TableRow key={m.id}>
                                                             <TableCell>{new Date(m.data).toLocaleString('pt-BR')}</TableCell>
-                                                            <TableCell>{m.quantidade ?? m.quantidadeMortas}</TableCell>
+                                                            <TableCell>{formatCount(m.quantidade ?? m.quantidadeMortas, 'aves')}</TableCell>
                                                             <TableCell>{m.motivo ?? m.causaPrincipal ?? '—'}</TableCell>
                                                             <TableCell>{m.setor || '—'}</TableCell>
                                                             <TableCell>{m.observacoes || '—'}</TableCell>
                                                             <TableCell>{m.responsavelRegistro || '—'}</TableCell>
-                                                            <TableCell>{m.percentualMortalidadeDia ?? '—'}</TableCell>
-                                                            <TableCell>{m.idadeDias ?? '—'}</TableCell>
+                                                            <TableCell>{m.percentualMortalidadeDia != null ? formatPercentage(m.percentualMortalidadeDia, { maximumFractionDigits: 2 }) : '—'}</TableCell>
+                                                            <TableCell>{m.idadeDias != null ? formatDays(m.idadeDias) : '—'}</TableCell>
                                                         </TableRow>
                                                     ))
                                             )}
@@ -477,12 +476,12 @@ function SanitarioPage() {
                                                             </TableCell>
                                                             <TableCell>{evento.produto}</TableCell>
                                                             <TableCell>{evento.viaAdministracao || '-'}</TableCell>
-                                                            <TableCell>{evento.avesTratadas?.toLocaleString() || '-'}</TableCell>
+                                                            <TableCell>{evento.avesTratadas != null ? formatCount(evento.avesTratadas, 'aves') : '-'}</TableCell>
                                                             <TableCell>{evento.responsavelAplicacao || '-'}</TableCell>
-                                                            <TableCell>{evento.custo ? `R$ ${evento.custo.toFixed(2)}` : '-'}</TableCell>
+                                                            <TableCell>{evento.custo ? formatCurrency(evento.custo) : '-'}</TableCell>
                                                             <TableCell>
                                                                 {evento.periodoCarenciaDias && evento.periodoCarenciaDias > 0 ? (
-                                                                    <Chip label={`Carência: ${evento.periodoCarenciaDias}d`} color="warning" size="small" />
+                                                                    <Chip label={`Carência: ${formatDays(evento.periodoCarenciaDias)}`} color="warning" size="small" />
                                                                 ) : (
                                                                     <Chip label="Liberado" color="success" size="small" />
                                                                 )}
@@ -533,7 +532,7 @@ function SanitarioPage() {
                                 <Grid item xs={12} md={6}>
                                     <TextField fullWidth label="Dosagem" value={formData.dosagem}
                                         onChange={(e) => setFormData(prev => ({ ...prev, dosagem: e.target.value }))}
-                                        placeholder="Ex: 1ml/ave, 0.5ml, 1g/L"
+                                        placeholder="Ex: 1 mL/ave, 0,5 mL, 1 g/L"
                                     />
                                 </Grid>
                                 <Grid item xs={12} md={6}>

@@ -3,7 +3,7 @@ import apiService from '../services/apiService';
 import { SENSOR_TYPES, SENSOR_TYPE_NAMES, getSensorUnit } from '../constants/sensorTypes';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { 
+import {
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Typography, Box, Button, Dialog, DialogActions, DialogContent, 
     DialogTitle, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, 
@@ -21,6 +21,7 @@ import {
     DeviceHub as DeviceHubIcon
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
+import { formatSensorMeasurement } from '../utils/measurementUtils';
 
 const initialFormState = {
     tipo: '', identificadorUnico: '', granjaId: ''
@@ -169,8 +170,7 @@ function SensoresPage() {
     };
 
     const formatSensorValue = (value, tipo) => {
-        const unit = getSensorUnit(tipo);
-        return unit ? `${value} ${unit}` : `${value}`;
+        return formatSensorMeasurement(value, tipo, { maximumFractionDigits: 2 });
     };
 
     const getSensorChartName = (sensor) => {

@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { AccessibilityContext } from '../context/AccessibilityContext';
+import logoGranjaTech from '../assets/logo-granjatech.png';
 import {
   AppBar,
   Toolbar,
@@ -110,7 +111,17 @@ function ResponsiveNavigation() {
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <AgricultureIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+        <Box
+          component="img"
+          src={logoGranjaTech}
+          alt="Logo GranjaTech"
+          sx={{
+            width: 36,
+            height: 'auto',
+            objectFit: 'contain',
+            flexShrink: 0,
+          }}
+        />
         <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
           GranjaTech
         </Typography>

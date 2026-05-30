@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-    Grid, Card, CardContent, Typography, Box, Alert, Button, 
-    Select, MenuItem, FormControl, InputLabel, Divider, Tooltip, 
+    Grid, Card, CardContent, Typography, Box, Alert, Button,
+    Select, MenuItem, FormControl, InputLabel,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     Dialog, DialogActions, DialogContent, DialogTitle, TextField,
     Tabs, Tab, Chip, IconButton
@@ -12,14 +12,12 @@ import {
     Add as AddIcon,
     Water as WaterIcon,
     Restaurant as RestaurantIcon,
-    TrendingUp as TrendingUpIcon,
     Analytics as AnalyticsIcon,
-    Edit as EditIcon,
-    Delete as DeleteIcon,
     Refresh as RefreshIcon
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, Bar } from 'recharts';
 import apiService from '../services/apiService';
+import { formatCount, formatMeasurement, formatNumber } from '../utils/measurementUtils';
 
 function ConsumoPage() {
     const [lotes, setLotes] = useState([]);
@@ -172,22 +170,6 @@ function ConsumoPage() {
         }
     };
 
-    const prepareChartData = () => {
-        const racaoData = consumosRacao.map(item => ({
-            data: new Date(item.data).toLocaleDateString('pt-BR'),
-            racao: item.quantidadeKg,
-            consumoPorAve: item.consumoPorAveGramas
-        }));
-
-        const aguaData = consumosAgua.map(item => ({
-            data: new Date(item.data).toLocaleDateString('pt-BR'),
-            agua: item.quantidadeLitros,
-            consumoPorAve: item.consumoPorAveMl
-        }));
-
-        return { racaoData, aguaData };
-    };
-
     if (loading) {
         return (
             <PageContainer title="Gestão de Consumo" subtitle="Controle de consumo de ração e água">
@@ -195,8 +177,6 @@ function ConsumoPage() {
             </PageContainer>
         );
     }
-
-    const { racaoData, aguaData } = prepareChartData();
 
     return (
         <PageContainer 
@@ -251,10 +231,10 @@ function ConsumoPage() {
                                             <Typography variant="h6">Consumo de Ração</Typography>
                                         </Box>
                                         <Typography variant="h4" color="primary">
-                                            {resumoConsumo.consumoRacao.totalKg.toFixed(1)} kg
+                                            {formatMeasurement(resumoConsumo.consumoRacao.totalKg, 'kg', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            Média: {resumoConsumo.consumoRacao.mediaPorAve.toFixed(1)}g/ave
+                                            Média: {formatMeasurement(resumoConsumo.consumoRacao.mediaPorAve, 'g', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/ave
                                         </Typography>
                                     </CardContent>
                                 </Card>
@@ -268,10 +248,10 @@ function ConsumoPage() {
                                             <Typography variant="h6">Consumo de Água</Typography>
                                         </Box>
                                         <Typography variant="h4" color="info.main">
-                                            {resumoConsumo.consumoAgua.totalLitros.toFixed(1)} L
+                                            {formatMeasurement(resumoConsumo.consumoAgua.totalLitros, 'L', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            Média: {resumoConsumo.consumoAgua.mediaPorAve.toFixed(1)}ml/ave
+                                            Média: {formatMeasurement(resumoConsumo.consumoAgua.mediaPorAve, 'mL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/ave
                                         </Typography>
                                     </CardContent>
                                 </Card>
@@ -285,10 +265,10 @@ function ConsumoPage() {
                                             <Typography variant="h6">Relação Água/Ração</Typography>
                                         </Box>
                                         <Typography variant="h4" color="success.main">
-                                            {resumoConsumo.relacaoAguaRacao.toFixed(2)}
+                                            {formatNumber(resumoConsumo.relacaoAguaRacao, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            Ideal: 2.0 L/kg
+                                            Ideal: 2,0 L/kg
                                         </Typography>
                                     </CardContent>
                                 </Card>
@@ -364,10 +344,10 @@ function ConsumoPage() {
                                                     <TableHead>
                                                         <TableRow>
                                                             <TableCell>Data</TableCell>
-                                                            <TableCell>Quantidade (kg)</TableCell>
+                                                            <TableCell>Quantidade</TableCell>
                                                             <TableCell>Tipo</TableCell>
                                                             <TableCell>Aves Vivas</TableCell>
-                                                            <TableCell>Por Ave (g)</TableCell>
+                                                            <TableCell>Por Ave</TableCell>
                                                             <TableCell>Observações</TableCell>
                                                         </TableRow>
                                                     </TableHead>
@@ -384,7 +364,7 @@ function ConsumoPage() {
                                                             consumosRacao.map((consumo) => (
                                                                 <TableRow key={consumo.id}>
                                                                     <TableCell>{new Date(consumo.data).toLocaleDateString('pt-BR')}</TableCell>
-                                                                    <TableCell>{consumo.quantidadeKg}</TableCell>
+                                                                    <TableCell>{formatMeasurement(consumo.quantidadeKg, 'kg')}</TableCell>
                                                                     <TableCell>
                                                                         <Chip 
                                                                             label={consumo.tipoRacao} 
@@ -395,8 +375,8 @@ function ConsumoPage() {
                                                                             }
                                                                         />
                                                                     </TableCell>
-                                                                    <TableCell>{consumo.avesVivas.toLocaleString()}</TableCell>
-                                                                    <TableCell>{consumo.consumoPorAveGramas.toFixed(1)}</TableCell>
+                                                                    <TableCell>{formatCount(consumo.avesVivas, 'aves')}</TableCell>
+                                                                    <TableCell>{formatMeasurement(consumo.consumoPorAveGramas, 'g', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
                                                                     <TableCell>{consumo.observacoes || '-'}</TableCell>
                                                                 </TableRow>
                                                             ))
@@ -442,11 +422,11 @@ function ConsumoPage() {
                                                                 <CartesianGrid strokeDasharray="3 3" />
                                                                 <XAxis dataKey="data" />
                                                                 <YAxis yAxisId="left" label={{ value: 'Total (L)', angle: -90, position: 'insideLeft' }} />
-                                                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Por Ave (ml)', angle: 90, position: 'insideRight' }} />
+                                                                <YAxis yAxisId="right" orientation="right" label={{ value: 'Por Ave (mL)', angle: 90, position: 'insideRight' }} />
                                                                 <RechartsTooltip />
                                                                 <Legend />
                                                                 <Bar yAxisId="left" dataKey="agua" fill="#2196f3" name="Total (L)" />
-                                                                <Line yAxisId="right" type="monotone" dataKey="consumoPorAve" stroke="#ff5722" name="Por Ave (ml)" />
+                                                                <Line yAxisId="right" type="monotone" dataKey="consumoPorAve" stroke="#ff5722" name="Por Ave (mL)" />
                                                             </LineChart>
                                                         </ResponsiveContainer>
                                                     </Box>
@@ -459,10 +439,10 @@ function ConsumoPage() {
                                                     <TableHead>
                                                         <TableRow>
                                                             <TableCell>Data</TableCell>
-                                                            <TableCell>Quantidade (L)</TableCell>
+                                                            <TableCell>Quantidade</TableCell>
                                                             <TableCell>Aves Vivas</TableCell>
-                                                            <TableCell>Por Ave (ml)</TableCell>
-                                                            <TableCell>Temperatura (°C)</TableCell>
+                                                            <TableCell>Por Ave</TableCell>
+                                                            <TableCell>Temperatura</TableCell>
                                                             <TableCell>Observações</TableCell>
                                                         </TableRow>
                                                     </TableHead>
@@ -479,10 +459,10 @@ function ConsumoPage() {
                                                             consumosAgua.map((consumo) => (
                                                                 <TableRow key={consumo.id}>
                                                                     <TableCell>{new Date(consumo.data).toLocaleDateString('pt-BR')}</TableCell>
-                                                                    <TableCell>{consumo.quantidadeLitros}</TableCell>
-                                                                    <TableCell>{consumo.avesVivas.toLocaleString()}</TableCell>
-                                                                    <TableCell>{consumo.consumoPorAveMl.toFixed(1)}</TableCell>
-                                                                    <TableCell>{consumo.temperaturaAmbiente ? `${consumo.temperaturaAmbiente}°C` : '-'}</TableCell>
+                                                                    <TableCell>{formatMeasurement(consumo.quantidadeLitros, 'L')}</TableCell>
+                                                                    <TableCell>{formatCount(consumo.avesVivas, 'aves')}</TableCell>
+                                                                    <TableCell>{formatMeasurement(consumo.consumoPorAveMl, 'mL', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</TableCell>
+                                                                    <TableCell>{consumo.temperaturaAmbiente != null ? formatMeasurement(consumo.temperaturaAmbiente, 'temperatura', { maximumFractionDigits: 1 }) : '-'}</TableCell>
                                                                     <TableCell>{consumo.observacoes || '-'}</TableCell>
                                                                 </TableRow>
                                                             ))
@@ -582,7 +562,7 @@ function ConsumoPage() {
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
-                                        label="Quantidade (Litros)"
+                                        label="Quantidade (L)"
                                         type="number"
                                         value={formAgua.quantidadeLitros}
                                         onChange={(e) => setFormAgua(prev => ({ ...prev, quantidadeLitros: e.target.value }))}

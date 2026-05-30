@@ -2,28 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-    Grid, Card, CardContent, Typography, Box, Alert, Button, Chip, 
-    Select, MenuItem, FormControl, InputLabel, Divider, Tooltip, 
+    Grid, Card, CardContent, Typography, Box, Alert, Chip,
+    Select, MenuItem, FormControl, InputLabel,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
     LinearProgress, IconButton
 } from '@mui/material';
 import {
-    Agriculture as AgricultureIcon,
     TrendingUp as TrendingUpIcon,
-    TrendingDown as TrendingDownIcon,
     Speed as SpeedIcon,
     Favorite as HeartIcon,
     Scale as ScaleIcon,
     Warning as WarningIcon,
-    CheckCircle as CheckCircleIcon,
-    Error as ErrorIcon,
-    Info as InfoIcon,
     Refresh as RefreshIcon,
     Analytics as AnalyticsIcon,
     Assessment as AssessmentIcon
 } from '@mui/icons-material';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import apiService from '../services/apiService';
+import { formatMeasurement, formatNumber, formatPercentage } from '../utils/measurementUtils';
 
 function AviculturaPage() {
     const [lotes, setLotes] = useState([]);
@@ -133,15 +129,14 @@ function AviculturaPage() {
                 </Box>
                 
                 <Typography variant="h4" component="div" sx={{ mb: 1 }}>
-                    {typeof valor === 'number' ? valor.toLocaleString('pt-BR', { 
+                    {typeof valor === 'number' ? (
+                        unidade ? formatMeasurement(valor, unidade, {
+                            minimumFractionDigits: titulo.includes('IEP') ? 0 : 2,
+                            maximumFractionDigits: titulo.includes('IEP') ? 0 : 2
+                        }) : formatNumber(valor, {
                         minimumFractionDigits: titulo.includes('IEP') ? 0 : 2, 
                         maximumFractionDigits: titulo.includes('IEP') ? 0 : 2 
-                    }) : valor}
-                    {unidade && (
-                        <Typography component="span" variant="body1" color="text.secondary" sx={{ ml: 0.5 }}>
-                            {unidade}
-                        </Typography>
-                    )}
+                    })) : valor}
                 </Typography>
 
                 {status && (
@@ -156,7 +151,7 @@ function AviculturaPage() {
                 {comparacao && (
                     <Box sx={{ mt: 1 }}>
                         <Typography variant="caption" color="text.secondary">
-                            Vs. Indústria: {comparacao > 0 ? '+' : ''}{comparacao.toFixed(1)}%
+                            Vs. Indústria: {comparacao > 0 ? '+' : ''}{formatPercentage(comparacao, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                         </Typography>
                         <LinearProgress 
                             variant="determinate" 
@@ -239,7 +234,7 @@ function AviculturaPage() {
                                 <Grid item xs={12} md={2}>
                                     <Typography variant="subtitle2" color="text.secondary">Viabilidade</Typography>
                                     <Typography variant="h6" color={selectedLote.viabilidade >= 95 ? 'success.main' : 'warning.main'}>
-                                        {selectedLote.viabilidade?.toFixed(1)}%
+                                        {formatPercentage(selectedLote.viabilidade, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                     </Typography>
                                 </Grid>
                                 <Grid item xs={12} md={3}>
@@ -373,13 +368,13 @@ function AviculturaPage() {
                                                         <TableRow key={index}>
                                                             <TableCell>{metrica.nome}</TableCell>
                                                             <TableCell align="center">
-                                                                {metrica.valorAtual.toFixed(2)} {metrica.unidade}
+                                                                {formatMeasurement(metrica.valorAtual, metrica.unidade, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </TableCell>
                                                             <TableCell align="center">
-                                                                {metrica.valorPadraoIndustria.toFixed(2)} {metrica.unidade}
+                                                                {formatMeasurement(metrica.valorPadraoIndustria, metrica.unidade, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </TableCell>
                                                             <TableCell align="center">
-                                                                {metrica.valorPadraoExcelencia.toFixed(2)} {metrica.unidade}
+                                                                {formatMeasurement(metrica.valorPadraoExcelencia, metrica.unidade, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                             </TableCell>
                                                             <TableCell align="center">
                                                                 <Chip 
@@ -457,7 +452,7 @@ function AviculturaPage() {
                                                             <YAxis label={{ value: 'Consumo (kg)', angle: -90, position: 'insideLeft' }} />
                                                             <RechartsTooltip 
                                                                 labelFormatter={(value) => `Semana ${value}`}
-                                                                formatter={(value) => [`${value}kg`, 'Consumo']}
+                                                                formatter={(value) => [formatMeasurement(value, 'kg'), 'Consumo']}
                                                             />
                                                             <Bar dataKey="valor" fill="#4caf50" />
                                                         </BarChart>

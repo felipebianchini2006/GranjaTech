@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiService from '../services/apiService';
 import PageContainer from '../components/PageContainer';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { Grid, Paper, Typography, Box, Tooltip, Card, CardContent } from '@mui/material';
+import { Grid, Typography, Box, Tooltip, Card, CardContent } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { 
   TrendingUp as TrendingUpIcon,
@@ -10,6 +10,7 @@ import {
   AccountBalance as AccountBalanceIcon,
   Pets as PetsIcon
 } from '@mui/icons-material';
+import { formatCurrency, formatNumber } from '../utils/measurementUtils';
 
 const KpiCard = ({ title, value, color, description, icon: Icon }) => (
     <Tooltip title={description} placement="top" arrow>
@@ -66,9 +67,6 @@ function DashboardPage() {
         fetchData();
     }, [fetchData]);
 
-    const formatCurrency = (value) => 
-        value?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
-
     if (loading) {
         return <LoadingSpinner message="Carregando dashboard..." />;
     }
@@ -84,8 +82,8 @@ function DashboardPage() {
                     <Grid item xs={12} sm={6} lg={3}>
                         <KpiCard 
                             title="Total de Entradas" 
-                            value={formatCurrency(kpis.totalEntradas)} 
-                            color="#4caf50" 
+                            value={formatCurrency(kpis.totalEntradas || 0)}
+                            color="#4caf50"
                             description="Soma de todos os valores registrados como entradas financeiras."
                             icon={TrendingUpIcon}
                         />
@@ -93,7 +91,7 @@ function DashboardPage() {
                     <Grid item xs={12} sm={6} lg={3}>
                         <KpiCard 
                             title="Total de Saídas" 
-                            value={formatCurrency(kpis.totalSaidas)} 
+                            value={formatCurrency(kpis.totalSaidas || 0)}
                             color="#f44336"
                             description="Soma de todos os valores registrados como saídas financeiras (despesas)."
                             icon={TrendingDownIcon}
@@ -102,7 +100,7 @@ function DashboardPage() {
                     <Grid item xs={12} sm={6} lg={3}>
                         <KpiCard 
                             title="Lucro Total" 
-                            value={formatCurrency(kpis.lucroTotal)} 
+                            value={formatCurrency(kpis.lucroTotal || 0)}
                             color={kpis.lucroTotal >= 0 ? '#2196f3' : '#f44336'}
                             description="Resultado da subtração: Total de Entradas - Total de Saídas."
                             icon={AccountBalanceIcon}
@@ -138,7 +136,7 @@ function DashboardPage() {
                                     tickLine={{ stroke: '#e0e0e0' }}
                                 />
                                 <YAxis 
-                                    tickFormatter={(value) => `R$${(value/1000).toFixed(0)}k`}
+                                    tickFormatter={(value) => `R$ ${formatNumber(value / 1000, { maximumFractionDigits: 0 })} mil`}
                                     tick={{ fontSize: 12 }}
                                     tickLine={{ stroke: '#e0e0e0' }}
                                 />
