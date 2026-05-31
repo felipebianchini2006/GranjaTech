@@ -12,7 +12,7 @@ services:
       POSTGRES_PASSWORD: postgres123
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docs:/docker-entrypoint-initdb.d:ro
@@ -34,7 +34,7 @@ services:
     container_name: granjatech-backend
     restart: unless-stopped
     ports:
-      - "5099:8080"
+      - "${BACKEND_HOST_PORT:-5099}:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=GranjaTechDb;Username=postgres;Password=postgres123
@@ -43,9 +43,22 @@ services:
       - Jwt__Audience=GranjaTechApp
       - AllowedOrigins=http://localhost:3000;http://localhost:80;http://frontend:80
       - Swagger__Enabled=true
+      - Mqtt__Enabled=true
+      - Mqtt__Host=mqtt-broker
+      - Mqtt__Port=1883
+      - Mqtt__ClientId=granjatech-api
+      - Mqtt__TelemetryTopic=granjatech/iot/+/telemetry
+      - Mqtt__AutoProvision=true
+      - Mqtt__DefaultOwnerUserId=1
+      - Mqtt__DefaultFarmCode=GRJ-IOT
+      - Mqtt__DefaultFarmName=Granja IoT Simulada
+      - Mqtt__DefaultFarmLocation=Docker MQTT Simulator
+      - Mqtt__DefaultDeviceId=aviario-01
     depends_on:
       postgres:
         condition: service_healthy
+      mqtt-broker:
+        condition: service_started
     networks:
       - granjatech-network
     healthcheck:
@@ -54,6 +67,66 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  # ===================================
+  # MQTT Broker para telemetria IoT
+  # ===================================
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: granjatech-mqtt
+    restart: unless-stopped
+    ports:
+      - "${MQTT_HOST_PORT:-1883}:1883"
+    volumes:
+      - ./iot-simulator/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    networks:
+      - granjatech-network
+
+  # ===================================
+  # Simulador/Firmware de sensor IoT
+  # ===================================
+  iot-simulator:
+    build:
+      context: ./iot-simulator
+      dockerfile: Dockerfile
+    container_name: granjatech-iot-simulator
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+      - DEVICE_ID=aviario-01
+      - MQTT_TOPIC_TEMPLATE=granjatech/iot/{device_id}/telemetry
+      - PUBLISH_INTERVAL_SECONDS=5
+      - FIRMWARE_VERSION=granjatech-fw-1.0.0
+    depends_on:
+      - mqtt-broker
+    networks:
+      - granjatech-network
+
+  # ===================================
+  # Simulador manual para apresentacao
+  # Rode: docker compose run --rm iot-manual-simulator
+  # ===================================
+  iot-manual-simulator:
+    build:
+      context: ./iot-simulator
+      dockerfile: Dockerfile
+    container_name: granjatech-iot-manual-simulator
+    profiles:
+      - manual
+    stdin_open: true
+    tty: true
+    command: ["python", "manual_simulator.py"]
+    environment:
+      - MQTT_HOST=mqtt-broker
+      - MQTT_PORT=1883
+      - DEVICE_ID=aviario-01
+      - MQTT_TOPIC_TEMPLATE=granjatech/iot/{device_id}/telemetry
+      - FIRMWARE_VERSION=granjatech-fw-1.0.0
+    depends_on:
+      - mqtt-broker
+    networks:
+      - granjatech-network
 
   # ===================================
   # Frontend (React + Nginx)
@@ -65,7 +138,7 @@ services:
     container_name: granjatech-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "${FRONTEND_HOST_PORT:-3000}:80"
     environment:
       - REACT_APP_API_URL=http://localhost:5099/api
     depends_on:
@@ -73,7 +146,7 @@ services:
     networks:
       - granjatech-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/health || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://127.0.0.1:80/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

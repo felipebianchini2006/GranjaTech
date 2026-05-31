@@ -1,3 +1,4 @@
+using GranjaTech.Api.IoT;
 using GranjaTech.Application.Services.Interfaces;
 using GranjaTech.Infrastructure;
 using GranjaTech.Infrastructure.Services;
@@ -64,6 +65,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
+builder.Services.Configure<MqttSensorOptions>(builder.Configuration.GetSection(MqttSensorOptions.SectionName));
+builder.Services.AddSingleton<IotIngestionState>();
+builder.Services.AddHostedService<MqttSensorIngestionService>();
 
 // =============================
 // EF Core / Npgsql
